@@ -20,6 +20,8 @@ struct SampleView: View {
     
     @State var isEmpty = false
     @State var isLoading = false
+    @State var requested = false
+    @State var flag = false
     
     init() {
         _range = State(initialValue: 0...100)
@@ -27,7 +29,7 @@ struct SampleView: View {
     }
     
     var body: some View {
-        LayoutView(isLoading: $isEmpty, isEmpty: $isLoading) {
+        LayoutView(isLoading: $isEmpty, isEmpty: $isLoading, requested: $requested) {
             Group {
                 
             }
@@ -36,13 +38,29 @@ struct SampleView: View {
                 
             }
         } footer: {
-            Group {
+            Form {
+                Section {
+                    Button {
+                        flag.toggle()
+                    } label: {
+                        HStack {
+                            Text("お気に入り")
+                            
+                            Spacer()
+                            Image(systemName: "star")
+                                .symbolVariant(flag ? .fill : .none)
+                                
+                        }
+                    }
+                }
+                
                 ValueSlider(value: $value)
-                RangeSlider(range: $range, in: inRange, step: 1)
+                RangeSlider(range: $range, in: inRange, step: 1, distance: 0...2)
                 PointSlider(x: $x, y: $y)
                 Button {
                     range = 10...90
                     inRange = 0...100
+                    
                 } label: {
                     Text("test")
                 }
@@ -52,6 +70,7 @@ struct SampleView: View {
                 //range = 0...100
                 //inRange = 0...100
             }
+            .frame(height: 500)
         }
 
         

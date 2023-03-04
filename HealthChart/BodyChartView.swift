@@ -19,7 +19,7 @@ struct BodyChartView: View {
     
     @State var isLoading = true
     @State var isEmpty = false
-    
+    @State var requested = false
     
     struct DoubleItem: Identifiable {
         var id = UUID()
@@ -62,7 +62,7 @@ struct BodyChartView: View {
     }
     
     var body: some View {
-        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, header: {
+        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, header: {
             Group {
                 Text("平均")
                     .font(.subheadline)

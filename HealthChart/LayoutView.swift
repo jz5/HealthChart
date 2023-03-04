@@ -11,7 +11,8 @@ import HealthKit
 struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     @Binding var isLoading: Bool
     @Binding var isEmpty: Bool
-
+    @Binding var requested: Bool
+    
     var header: Header
     var chart: Chart
     var footer: Footer
@@ -20,12 +21,12 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     
     @State var orientation: UIDeviceOrientation
     @State var showActivityIndicator: Bool = false
-    @State var image: UIImage?
-    
+
     let isHealthDataAvailable = HKHealthStore.isHealthDataAvailable()
     
     init(isLoading: Binding<Bool>,
          isEmpty: Binding<Bool>,
+         requested: Binding<Bool>,
          @ViewBuilder header: () -> Header,
          @ViewBuilder chart: () -> Chart,
          @ViewBuilder footer: () -> Footer) {
@@ -37,6 +38,7 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
 
         self._isLoading = isLoading
         self._isEmpty = isEmpty
+        self._requested = requested
     }
     
     var body: some View {
@@ -49,9 +51,14 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
                 .background(.background)
 
         } else if (isEmpty) {
-            Text("記録がありません。または、読み取り許可されていません。")
-                .padding()
-                .background(.background)
+            VStack {
+                Text("記録がありません。または、ヘルスケアデータの読み取り許可がありません。")
+                AuthorizationView(requested: $requested)
+                .padding(.top)
+            }
+            .padding([.bottom, .horizontal])
+            .background(.background)
+
 
         } else if (isPortrait()) {
             ScrollView {
