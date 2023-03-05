@@ -11,12 +11,10 @@
 		4251563429AA56C800627B25 /* BarChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4251563329AA56C800627B25 /* BarChartView.swift */; };
 		4251563629ACC85A00627B25 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4251563529ACC85A00627B25 /* LicensesView.swift */; };
 		4251563829B2AF6700627B25 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4251563729B2AF6700627B25 /* SettingsView.swift */; };
-		4264A8D129A638C500AB09E6 /* DistanceWalkingRunningChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4264A8D029A638C500AB09E6 /* DistanceWalkingRunningChartView.swift */; };
 		4264A8D329A7169300AB09E6 /* LayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4264A8D229A7169300AB09E6 /* LayoutView.swift */; };
 		4264A8D829A778CE00AB09E6 /* LineChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4264A8D729A778CE00AB09E6 /* LineChartView.swift */; };
 		4264A8DA29A77CC600AB09E6 /* Health.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4264A8D929A77CC600AB09E6 /* Health.swift */; };
 		42683E4329B2BB0000D93BB9 /* AuthorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42683E4229B2BB0000D93BB9 /* AuthorizationView.swift */; };
-		42C7438529A21ACE00B1893C /* BodyChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42C7438429A21ACE00B1893C /* BodyChartView.swift */; };
 		42C7438D29A2F1D400B1893C /* Sliders in Frameworks */ = {isa = PBXBuildFile; productRef = 42C7438C29A2F1D400B1893C /* Sliders */; };
 		42C7439129A53B9C00B1893C /* SampleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42C7439029A53B9C00B1893C /* SampleView.swift */; };
 		42D84E5C299F607C00153011 /* HealthChartApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42D84E5B299F607C00153011 /* HealthChartApp.swift */; };
@@ -30,13 +28,11 @@
 		4251563329AA56C800627B25 /* BarChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarChartView.swift; sourceTree = "<group>"; };
 		4251563529ACC85A00627B25 /* LicensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensesView.swift; sourceTree = "<group>"; };
 		4251563729B2AF6700627B25 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		4264A8D029A638C500AB09E6 /* DistanceWalkingRunningChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceWalkingRunningChartView.swift; sourceTree = "<group>"; };
 		4264A8D229A7169300AB09E6 /* LayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutView.swift; sourceTree = "<group>"; };
 		4264A8D629A7404900AB09E6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4264A8D729A778CE00AB09E6 /* LineChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineChartView.swift; sourceTree = "<group>"; };
 		4264A8D929A77CC600AB09E6 /* Health.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Health.swift; sourceTree = "<group>"; };
 		42683E4229B2BB0000D93BB9 /* AuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizationView.swift; sourceTree = "<group>"; };
-		42C7438429A21ACE00B1893C /* BodyChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyChartView.swift; sourceTree = "<group>"; };
 		42C7439029A53B9C00B1893C /* SampleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleView.swift; sourceTree = "<group>"; };
 		42D84E58299F607C00153011 /* HealthChart.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HealthChart.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		42D84E5B299F607C00153011 /* HealthChartApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthChartApp.swift; sourceTree = "<group>"; };
@@ -81,18 +77,16 @@
 				42D84E69299F655B00153011 /* HealthChart.entitlements */,
 				42D84E5B299F607C00153011 /* HealthChartApp.swift */,
 				42D84E5D299F607C00153011 /* ContentView.swift */,
-				4251563729B2AF6700627B25 /* SettingsView.swift */,
-				42C7438429A21ACE00B1893C /* BodyChartView.swift */,
-				4264A8D729A778CE00AB09E6 /* LineChartView.swift */,
-				4251563529ACC85A00627B25 /* LicensesView.swift */,
-				4251563329AA56C800627B25 /* BarChartView.swift */,
 				4264A8D229A7169300AB09E6 /* LayoutView.swift */,
-				4264A8D029A638C500AB09E6 /* DistanceWalkingRunningChartView.swift */,
-				42C7439029A53B9C00B1893C /* SampleView.swift */,
-				4264A8D929A77CC600AB09E6 /* Health.swift */,
-				42D84E5F299F607D00153011 /* Assets.xcassets */,
-				4251563129AA544300627B25 /* Color.swift */,
+				4251563329AA56C800627B25 /* BarChartView.swift */,
+				4264A8D729A778CE00AB09E6 /* LineChartView.swift */,
 				42683E4229B2BB0000D93BB9 /* AuthorizationView.swift */,
+				4251563729B2AF6700627B25 /* SettingsView.swift */,
+				4251563529ACC85A00627B25 /* LicensesView.swift */,
+				42C7439029A53B9C00B1893C /* SampleView.swift */,
+				42D84E5F299F607D00153011 /* Assets.xcassets */,
+				4264A8D929A77CC600AB09E6 /* Health.swift */,
+				4251563129AA544300627B25 /* Color.swift */,
 				42D84E61299F607D00153011 /* Preview Content */,
 			);
 			path = HealthChart;
@@ -185,8 +179,6 @@
 				4251563629ACC85A00627B25 /* LicensesView.swift in Sources */,
 				4264A8D829A778CE00AB09E6 /* LineChartView.swift in Sources */,
 				42D84E5E299F607C00153011 /* ContentView.swift in Sources */,
-				42C7438529A21ACE00B1893C /* BodyChartView.swift in Sources */,
-				4264A8D129A638C500AB09E6 /* DistanceWalkingRunningChartView.swift in Sources */,
 				42C7439129A53B9C00B1893C /* SampleView.swift in Sources */,
 				42D84E5C299F607C00153011 /* HealthChartApp.swift in Sources */,
 				4264A8DA29A77CC600AB09E6 /* Health.swift in Sources */,
@@ -321,16 +313,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HealthChart/HealthChart.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HealthChart/Preview Content\"";
-				DEVELOPMENT_TEAM = 2JDG8GM7G3;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 4XKKKM86RN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HealthChart/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "ヘルスチャート";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "チャート作成のため読み取ります";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "書き込みは行いません";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -341,8 +336,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jp.pronama.healthchart.personal;
+				PRODUCT_BUNDLE_IDENTIFIER = jp.pronama.healthcarechart;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Health care chart Provisioning Profile";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -358,16 +355,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HealthChart/HealthChart.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HealthChart/Preview Content\"";
-				DEVELOPMENT_TEAM = 2JDG8GM7G3;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 4XKKKM86RN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HealthChart/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "ヘルスチャート";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "チャート作成のため読み取ります";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "書き込みは行いません";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -378,8 +378,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jp.pronama.healthchart.personal;
+				PRODUCT_BUNDLE_IDENTIFIER = jp.pronama.healthcarechart;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Health care chart Provisioning Profile";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

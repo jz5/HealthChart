@@ -285,7 +285,7 @@ struct LineChartView: View {
                 Toggle("シンボル", isOn: $showSymbols)
 
             }
-            .frame(height: 500)
+            .frame(height: 300)
             .scrollContentBackground(.hidden)
             
 
@@ -297,6 +297,9 @@ struct LineChartView: View {
         .navigationTitle(health.title)
         .background(Color(colorScheme == .dark ? UIColor.systemBackground : UIColor.secondarySystemBackground))
         .onAppear() {
+            executeQuery()
+        }
+        .onChange(of: requested) { newValue in
             executeQuery()
         }
     }

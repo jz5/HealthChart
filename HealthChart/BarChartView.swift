@@ -291,7 +291,7 @@ struct BarChartView: View {
                 Toggle("最大", isOn: $showMinMax)
 
             }
-            .frame(height: 500)
+            .frame(height: 300)
             .scrollContentBackground(.hidden)
             
 
@@ -303,6 +303,10 @@ struct BarChartView: View {
         .navigationTitle(health.title)
         .background(Color(colorScheme == .dark ? UIColor.systemBackground : UIColor.secondarySystemBackground))
         .onAppear() {
+            let startDate = Calendar.current.date(from: DateComponents(year: startYear, month: 1, day: 1, hour: 0, minute: 0, second: 0))!
+            executeQuery(startDate: startDate)
+        }
+            .onChange(of: requested) { newValue in
             let startDate = Calendar.current.date(from: DateComponents(year: startYear, month: 1, day: 1, hour: 0, minute: 0, second: 0))!
             executeQuery(startDate: startDate)
         }

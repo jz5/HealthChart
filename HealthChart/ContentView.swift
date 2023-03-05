@@ -1,4 +1,4 @@
-import Charts//
+//
 //  ContentView.swift
 //  HealthChart
 //
@@ -48,12 +48,11 @@ struct ContentView: View {
                             }
                         }
                     }
-
-                    Section {
-                        NavigationLink("test") {
-                            SampleView()
-                        }
-                    }
+//                    Section {
+//                        NavigationLink("test") {
+//                            SampleView()
+//                        }
+//                    }
                 }
                 //.navigationBarTitleDisplayMode(.title)
                 //.navigationTitle("ヘルスケアデータ")
