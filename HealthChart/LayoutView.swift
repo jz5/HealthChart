@@ -42,17 +42,19 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     }
     
     var body: some View {
-        if (!isHealthDataAvailable) {
-            Text("この端末はサポートしていません")
+        if !isHealthDataAvailable {
+            Text("この端末はサポートしていません。標準アプリ「ヘルスケア」のあるiPhoneで動作します。")
+                .padding([.bottom, .horizontal])
                 .background(.background)
 
-        } else if (isLoading) {
+        } else if isLoading {
             ProgressView()
                 .background(.background)
 
-        } else if (isEmpty) {
+        } else if isEmpty {
             VStack {
                 Text("記録がありません。または、ヘルスケアデータの読み取り許可がありません。")
+                
                 AuthorizationView(requested: $requested)
                 .padding(.top)
             }
@@ -60,7 +62,7 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
             .background(.background)
 
 
-        } else if (isPortrait()) {
+        } else if isPortrait() {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Group {

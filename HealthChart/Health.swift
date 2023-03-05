@@ -29,7 +29,7 @@ struct HealthItem: Identifiable {
 }
 
 class Health: ObservableObject {
-    
+
     @Published var items: [HealthItem] = [
         HealthItem(type: .activeEnergyBurned,
             chart: .bar,
@@ -94,6 +94,15 @@ class Health: ObservableObject {
             sampleUnitText: "歩",
             sampleValueFormat: "%.0f",
             sampleUnit: HKUnit.count()),
+        HealthItem(type: .distanceSwimming,
+            chart: .bar,
+            image: "flame.fill",
+            title: "泳いだ距離",
+            color: .fitnessColor,
+            sampleValueTitle: "1日の平均",
+            sampleUnitText: "m",
+            sampleValueFormat: "%.0f",
+            sampleUnit: HKUnit.meter()),
         HealthItem(type: .distanceCycling,
             chart: .bar,
             image: "flame.fill",
@@ -145,7 +154,7 @@ class Health: ObservableObject {
             chart: .bar,
             image: "carrot",
             title: "摂取エネルギー",
-                   color: .green,
+            color: .green,
             sampleValueTitle: "1日の平均",
             sampleUnitText: "kcal",
             sampleValueFormat: "%.0f",
