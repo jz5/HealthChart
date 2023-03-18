@@ -28,16 +28,11 @@ struct ContentView: View {
 
             NavigationStack {
                 List {
-                    ForEach(health.items) { item in
+                    ForEach(health.items.filter{ $0.chart != .hidden }) { item in
 
                         NavigationLink {
-                            //LineChartView(health: item)
-
-                            if item.chart == .bar {
-                                BarChartView(health: item)
-                            } else {
-                                LineChartView(health: item)
-                            }
+                            chartView(item: item)
+                            
                         } label: {
                             HStack {
                                 Image(systemName: item.image)
@@ -71,6 +66,18 @@ struct ContentView: View {
             }
 
 
+        }
+    }
+    
+    private func chartView(item: HealthItem) -> AnyView {
+        if item.chart == .bar {
+            return AnyView(BarChartView(health: item))
+        } else if item.chart == .line {
+            return AnyView(LineChartView(health: item))
+        } else if item.chart == .bloodPress {
+            return AnyView(BloodPressureChartView(health: item))
+        } else {
+                return AnyView(RangeChartView(health: item))
         }
     }
 

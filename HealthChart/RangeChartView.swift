@@ -10,7 +10,7 @@ import Charts
 import HealthKit
 import Sliders
 
-struct BarChartView: View {
+struct RangeChartView: View {
     @State public var health: HealthItem
 
     @Environment(\.colorScheme) var colorScheme
@@ -27,20 +27,28 @@ struct BarChartView: View {
 
     struct ChartItem: Identifiable {
         var id = UUID()
-        var value: Double
+        //var value: Double
         var date: Date
         var startDate: Date
         var endDate: Date
-        var sum: Double
-        var count: Int
+        //var sum: Double
+        //var count: Int
+        
+        var min: Double
+        var max: Double
     }
     @State var items: [ChartItem] = []
 
-    struct DailyItem {
-        var value: Double
+    struct DailyItem: Identifiable {
+        var id = UUID()
+        //var value: Double
+        var date: Date
         var startDate: Date
         var endDate: Date
+        var min: Double
+        var max: Double
     }
+    @State var dailyItems: [DailyItem] = []
 
     let yearDateFormatter = DateFormatter()
     let monthDateFormatter = DateFormatter()
@@ -76,43 +84,43 @@ struct BarChartView: View {
     var body: some View {
         LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, header: {
             Group {
-                Text(health.sampleValueTitle)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .fontWeight(.semibold)
-                    .padding(.top)
-
-                HStack(alignment: .bottom) {
-                    if value == nil {
-                        Text("データなし")
-                            .fontWeight(.medium)
-                            .font(.system(.largeTitle, design: .rounded))
-
-                    } else {
-                        Text(String(format: health.sampleValueFormat, value ?? 0))
-                            .fontWeight(.medium)
-                            .font(.system(.largeTitle, design: .rounded))
-                            +
-                            Text(health.sampleUnitText)
-                            .foregroundColor(.gray)
-                            .fontWeight(.semibold)
-                            .font(.system(.subheadline, design: .rounded))
-                    }
-                }
-                if items.count == 1 {
-                    Text(yearMonthDateFormatter.string(from: items[range.lowerBound].date))
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .fontWeight(.semibold)
-                }
-                if !items.isEmpty {
-                    Text(
-                        yearMonthDateFormatter.string(from: items[range.lowerBound].date) + "〜" +
-                            yearMonthDateFormatter.string(from: items[range.upperBound].date))
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .fontWeight(.semibold)
-                }
+//                Text(health.sampleValueTitle)
+//                    .font(.subheadline)
+//                    .foregroundColor(.gray)
+//                    .fontWeight(.semibold)
+//                    .padding(.top)
+//
+//                HStack(alignment: .bottom) {
+//                    if value == nil {
+//                        Text("データなし")
+//                            .fontWeight(.medium)
+//                            .font(.system(.largeTitle, design: .rounded))
+//
+//                    } else {
+//                        Text(String(format: health.sampleValueFormat, value ?? 0))
+//                            .fontWeight(.medium)
+//                            .font(.system(.largeTitle, design: .rounded))
+//                            +
+//                            Text(health.sampleUnitText)
+//                            .foregroundColor(.gray)
+//                            .fontWeight(.semibold)
+//                            .font(.system(.subheadline, design: .rounded))
+//                    }
+//                }
+//                if items.count == 1 {
+//                    Text(yearMonthDateFormatter.string(from: items[range.lowerBound].date))
+//                        .font(.subheadline)
+//                        .foregroundColor(.gray)
+//                        .fontWeight(.semibold)
+//                }
+//                if !items.isEmpty {
+//                    Text(
+//                        yearMonthDateFormatter.string(from: items[range.lowerBound].date) + "〜" +
+//                            yearMonthDateFormatter.string(from: items[range.upperBound].date))
+//                        .font(.subheadline)
+//                        .foregroundColor(.gray)
+//                        .fontWeight(.semibold)
+//                }
             }
 
 
@@ -132,17 +140,26 @@ struct BarChartView: View {
 
                             let width = geometry.size.width / Double(elapsed + 12)
 
-                            ForEach(filteredItems) {
-                                BarMark (
-                                    x: .value("日付", $0.date),
-                                    y: .value(health.sampleUnitText, $0.value),
-                                    width: width < 3 ? 1 : (width < 4 ? 2 : (width < 5 ? 3 : (width < 6 ? 4 : (width < 7 ? 5 : (width < 8 ? 6 : (width < 9 ? 7 : 8))))))
-                                )
+                            Plot {
+                                ForEach(dailyItems.filter {
+                                    $0.date >= items[range.lowerBound].date &&
+                                    $0.date <= items[range.upperBound].date
+                                }) {
+                                    BarMark (
+                                        x: .value("日付", $0.date),
+                                        yStart: .value(health.sampleUnitText, $0.min),
+                                        yEnd: .value(health.sampleUnitText, $0.max),
+                                        width: width < 3 ? 1 : (width < 4 ? 2 : (width < 5 ? 3 : (width < 6 ? 4 : (width < 7 ? 5 : (width < 8 ? 6 : (width < 9 ? 7 : 8))))))
+                                    )
+                                    .clipShape(Capsule())
+                                    .foregroundStyle(health.color.gradient)
                                     .accessibilityLabel("\($0.date)")
-                                    .accessibilityValue("\($0.value) " + health.sampleUnitText)
+                                    //.accessibilityValue("\($0.value) " + health.sampleUnitText)
                                     .foregroundStyle(health.color)
+                                }
                             }
                         }
+                        /*
                         if showAverage,
                             let value {
                             RuleMark(y: .value("平均", value))
@@ -169,7 +186,7 @@ struct BarChartView: View {
                                         .foregroundColor(health.color) }
                             }
 
-                        }
+                        }*/
 
                     }
                         .chartXAxis {
@@ -205,72 +222,72 @@ struct BarChartView: View {
                         }
                     }
                     //.chartYScale(domain: .automatic(includesZero: false))
-                    .chartOverlay { proxy in
-                        GeometryReader { geo in
-                            Rectangle().fill(.clear).contentShape(Rectangle())
-                                .gesture(
-                                SpatialTapGesture()
-                                    .onEnded { value in
-                                    let element = findElement(location: value.location, proxy: proxy, geometry: geo)
-                                    if selectedItem?.date == element?.date {
-                                        // If tapping the same element, clear the selection.
-                                        selectedItem = nil
-                                    } else {
-                                        selectedItem = element
-                                    }
-                                }
-                                    .exclusively(
-                                    before: DragGesture()
-                                        .onChanged { value in
-                                        selectedItem = findElement(location: value.location, proxy: proxy, geometry: geo)
-                                    }
-                                )
-                            )
-                        }
-                    }
-                        .chartBackground { proxy in
-                        ZStack(alignment: .topLeading) {
-                            GeometryReader { geo in
-                                if true,
-                                    let selectedItem {
-                                    let dateInterval = Calendar.current.dateInterval(of: .day, for: selectedItem.date)!
-                                    let startPositionX1 = proxy.position(forX: dateInterval.start) ?? 0
-
-                                    let lineX = startPositionX1 + geo[proxy.plotAreaFrame].origin.x
-                                    let lineHeight = geo[proxy.plotAreaFrame].maxY
-                                    let boxWidth: CGFloat = 120
-                                    let boxOffset = max(0, min(geo.size.width - boxWidth, lineX - boxWidth / 2))
-
-                                    Rectangle()
-                                        .fill(Color.lolipopBarColor)
-                                        .frame(width: 2, height: lineHeight)
-                                        .position(x: lineX, y: lineHeight / 2)
-
-                                    VStack(alignment: .center) {
-
-                                        Text(String(format: health.sampleValueFormat, selectedItem.value))
-                                            .fontWeight(.medium)
-                                            .font(.system(.largeTitle, design: .rounded))
-                                        Text(yearMonthDateFormatter.string(from: selectedItem.date))
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                            .fontWeight(.semibold)
-                                    }
-                                        .frame(width: boxWidth, alignment: .center)
-                                        .background {
-                                        ZStack {
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(Color.lolipopBackgroundColor)
-
-                                        }
-                                            .padding(.horizontal, -8)
-                                            .padding(.vertical, -4)
-                                    }
-                                        .offset(x: boxOffset)
-                                }
-                            }
-                        }
-                    }
+//                    .chartOverlay { proxy in
+//                        GeometryReader { geo in
+//                            Rectangle().fill(.clear).contentShape(Rectangle())
+//                                .gesture(
+//                                SpatialTapGesture()
+//                                    .onEnded { value in
+//                                    let element = findElement(location: value.location, proxy: proxy, geometry: geo)
+//                                    if selectedItem?.date == element?.date {
+//                                        // If tapping the same element, clear the selection.
+//                                        selectedItem = nil
+//                                    } else {
+//                                        selectedItem = element
+//                                    }
+//                                }
+//                                    .exclusively(
+//                                    before: DragGesture()
+//                                        .onChanged { value in
+//                                        selectedItem = findElement(location: value.location, proxy: proxy, geometry: geo)
+//                                    }
+//                                )
+//                            )
+//                        }
+//                    }
+//                        .chartBackground { proxy in
+//                        ZStack(alignment: .topLeading) {
+//                            GeometryReader { geo in
+//                                if true,
+//                                    let selectedItem {
+//                                    let dateInterval = Calendar.current.dateInterval(of: .day, for: selectedItem.date)!
+//                                    let startPositionX1 = proxy.position(forX: dateInterval.start) ?? 0
+//
+//                                    let lineX = startPositionX1 + geo[proxy.plotAreaFrame].origin.x
+//                                    let lineHeight = geo[proxy.plotAreaFrame].maxY
+//                                    let boxWidth: CGFloat = 120
+//                                    let boxOffset = max(0, min(geo.size.width - boxWidth, lineX - boxWidth / 2))
+//
+//                                    Rectangle()
+//                                        .fill(Color.lolipopBarColor)
+//                                        .frame(width: 2, height: lineHeight)
+//                                        .position(x: lineX, y: lineHeight / 2)
+//
+//                                    VStack(alignment: .center) {
+//
+//                                        Text(String(format: health.sampleValueFormat, selectedItem.value))
+//                                            .fontWeight(.medium)
+//                                            .font(.system(.largeTitle, design: .rounded))
+//                                        Text(yearMonthDateFormatter.string(from: selectedItem.date))
+//                                            .font(.subheadline)
+//                                            .foregroundColor(.gray)
+//                                            .fontWeight(.semibold)
+//                                    }
+//                                        .frame(width: boxWidth, alignment: .center)
+//                                        .background {
+//                                        ZStack {
+//                                            RoundedRectangle(cornerRadius: 8)
+//                                                .fill(Color.lolipopBackgroundColor)
+//
+//                                        }
+//                                            .padding(.horizontal, -8)
+//                                            .padding(.vertical, -4)
+//                                    }
+//                                        .offset(x: boxOffset)
+//                                }
+//                            }
+//                        }
+//                    }
                 }
 
             }, footer: {
@@ -280,7 +297,7 @@ struct BarChartView: View {
                             if editing {
 
                             } else {
-                                calculateAverage()
+                                //calculateAverage()
                             }
                         }).disabled(!isCompleted || isEmpty)
 
@@ -334,14 +351,14 @@ struct BarChartView: View {
 
     private func calculateAverage() {
 
-        var sum: Double = 0
-        var count: Int = 0
-
-        for i in range {
-            sum += items[i].sum
-            count += items[i].count
-        }
-        value = sum / Double(count)
+//        var sum: Double = 0
+//        var count: Int = 0
+//
+//        for i in range {
+//            sum += items[i].sum
+//            count += items[i].count
+//        }
+//        value = sum / Double(count)
     }
 
     private func executeQuery(startDate: Date) {
@@ -373,7 +390,7 @@ struct BarChartView: View {
         let query = HKStatisticsCollectionQuery(
             quantityType: sampleType,
             quantitySamplePredicate: predicate,
-            options: [.cumulativeSum],
+            options: [.discreteMin, .discreteMax],
             anchorDate: startDate,
             intervalComponents: DateComponents(day: 1))
 
@@ -381,38 +398,51 @@ struct BarChartView: View {
             query, collection, error in
 
 
-            var dailyItems: [DailyItem] = []
+            //var dailyItems: [DailyItem] = []
+
+            let span = date2.timeIntervalSince(date1)
+            let date = date1.addingTimeInterval(span / 2)
 
             collection?.enumerateStatistics(
                 from: date1,
                 to: date2
             ) { statistics, stop in
 
-                let q = statistics.sumQuantity()
+                let minQ = statistics.minimumQuantity()
+                let maxQ = statistics.maximumQuantity()
 
+                print(statistics)
+                print(minQ)
+                print(maxQ)
 
-                let value = q?.doubleValue(for: health.sampleUnit)
-                if let value {
+                let min = minQ?.doubleValue(for: health.sampleUnit)
+                let max = maxQ?.doubleValue(for: health.sampleUnit)
+                
+                if let min, let max {
                     dailyItems.append(DailyItem(
-                        value: value,
+                        date: date,
                         startDate: statistics.startDate,
-                        endDate: statistics.endDate))
+                        endDate: statistics.endDate,
+                        min: min,
+                        max: max))
                 }
             }
 
             if !dailyItems.isEmpty {
-
-                let sum = dailyItems.reduce(0, { $0 + $1.value })
-                let span = date2.timeIntervalSince(date1)
-                let date = date1.addingTimeInterval(span / 2)
-
+                let min = dailyItems.min { a, b in
+                    a.min < b.min
+                }?.min
+                let max = dailyItems.max { a, b in
+                    a.max < b.max
+                }?.max
+                
                 items.append(ChartItem(
-                    value: sum / Double(dailyItems.count),
                     date: date,
                     startDate: date1,
                     endDate: date2,
-                    sum: sum,
-                    count: dailyItems.count))
+                    min: min!,
+                    max: max!
+                ))
 
                 isEmpty = false
                 isLoading = false
@@ -420,7 +450,7 @@ struct BarChartView: View {
                 range = 0...items.count - 1
                 inRange = 0...items.count - 1
 
-                calculateAverage()
+                //calculateAverage()
             }
 
             date1 = calendar.date(byAdding: dateComponent, to: date1)!
@@ -430,7 +460,7 @@ struct BarChartView: View {
     }
 }
 
-struct BarChartView_Previews: PreviewProvider {
+struct RangeChartView_Previews: PreviewProvider {
     static var previews: some View {
         BarChartView(health: HealthItem(type: .distanceWalkingRunning,
             chart: .bar,

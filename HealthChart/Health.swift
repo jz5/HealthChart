@@ -13,6 +13,9 @@ import Foundation
 enum ChartType {
     case bar
     case line
+    case range
+    case bloodPress
+    case hidden
 }
 
 struct HealthItem: Identifiable {
@@ -131,6 +134,15 @@ class Health: ObservableObject {
             sampleUnitText: "ミリ秒",
             sampleValueFormat: "%.0f",
             sampleUnit: HKUnit.secondUnit(with: .milli)),
+//        HealthItem(type: .heartRate,
+//            chart: .range,
+//            image: "heart.fill",
+//            title: "心拍数",
+//            color: .pink,
+//            sampleValueTitle: "範囲",
+//            sampleUnitText: "拍/分",
+//            sampleValueFormat: "%.0f",
+//            sampleUnit: HKUnit.init(from: "count/min")),
         HealthItem(type: .heartRateRecoveryOneMinute,
             chart: .line,
             image: "heart.fill",
@@ -149,6 +161,24 @@ class Health: ObservableObject {
             sampleUnitText: "拍/分",
             sampleValueFormat: "%.0f",
             sampleUnit: HKUnit.init(from: "count/min")),
+        HealthItem(type: .bloodPressureSystolic,
+            chart: .bloodPress,
+            image: "heart.fill",
+            title: "血圧",
+            color: .pink,
+            sampleValueTitle: "",
+            sampleUnitText: "mmHg",
+            sampleValueFormat: "%.0f",
+            sampleUnit: HKUnit.millimeterOfMercury()),
+        HealthItem(type: .bloodPressureDiastolic,
+            chart: .hidden,
+            image: "heart.fill",
+            title: "血圧",
+            color: .pink,
+            sampleValueTitle: "",
+            sampleUnitText: "mmHg",
+            sampleValueFormat: "%.0f",
+            sampleUnit: HKUnit.millimeterOfMercury()),
         // 栄養
         HealthItem(type: .dietaryEnergyConsumed,
             chart: .bar,

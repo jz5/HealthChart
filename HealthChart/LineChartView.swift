@@ -107,13 +107,13 @@ struct LineChartView: View {
             
             
         }, chart: {
-            let filterdItems = items.filter {
+            let filteredItems = items.filter {
                 $0.date >= items[range.lowerBound].date &&
                 $0.date <= items[range.upperBound].date
             }
             
             Chart {
-                ForEach(filterdItems) {
+                ForEach(filteredItems) {
                     LineMark (
                         x: .value("日付", $0.date),
                         y: .value(health.sampleUnitText, $0.value)
@@ -138,10 +138,10 @@ struct LineChartView: View {
 
                 }
                 if showMinMax {
-                    let min = filterdItems.min { a, b in
+                    let min = filteredItems.min { a, b in
                         a.value < b.value
                     }
-                    let max = filterdItems.max { a, b in
+                    let max = filteredItems.max { a, b in
                         a.value < b.value
                     }
 
