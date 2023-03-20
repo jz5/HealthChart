@@ -28,7 +28,7 @@ struct ContentView: View {
 
             NavigationStack {
                 List {
-                    ForEach(health.items.filter{ $0.chart != .hidden }) { item in
+                    ForEach(health.items.filter{ $0.chart != .hidden && $0.isVisible }) { item in
 
                         NavigationLink {
                             chartView(item: item)
@@ -54,7 +54,7 @@ struct ContentView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         NavigationLink {
-                            SettingsView()
+                            SettingsView(health: health)
                         } label: {
                             HStack {
                                 Image(systemName: "gearshape")

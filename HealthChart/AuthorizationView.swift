@@ -23,7 +23,7 @@ struct AuthorizationView: View {
         } label: {
             HStack {
                 Image(systemName: "info.circle")
-                Text("ヘルスケアデータの読み取り許可")
+                Text("ヘルスケアデータの読み出し許可")
                 if isLoading {
                     ProgressView()
                         .padding(.leading)
@@ -32,9 +32,9 @@ struct AuthorizationView: View {
             }
         }
         .disabled(isLoading)
-        .alert("読み取り許可の方法", isPresented: $showAlert) {
+        .alert("読み出し許可の方法", isPresented: $showAlert) {
         } message: {
-            Text("「ヘルスケア」のデータを読み取ってチャートを作成し表示します。読み取りの許可・拒否は、「ヘルスケア」アプリの画面下にある「共有」から共有画面を開き、「App」の「ヘルスチャート」から行えます。")
+            Text("「ヘルスケア」のデータを読み出してチャートを作成し表示します。読み出しの許可・拒否は、「ヘルスケア」アプリの画面下にある「共有」から共有画面を開き、「App」の「ヘルスチャート」から行えます。")
         }
     }
     

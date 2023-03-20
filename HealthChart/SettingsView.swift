@@ -8,14 +8,24 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @ObservedObject var health: Health
     @AppStorage("startYear") private var startYear = 2014
     let year = Calendar.current.component(.year, from: Date())
+
+    init(health: Health) {
+        self.health = health
+    }
 
     var body: some View {
         Form {
             Section(header: Text("ヘルスケアデータ取得開始年")) {
                 Stepper(value: $startYear, in: 1900...year) {
                     Text(verbatim: "\(startYear) 年")
+                }
+            }
+            Section{
+                NavigationLink("表示する項目") {
+                    VisibilitySettingsView(health: health)
                 }
             }
             Section("開発支援") {
@@ -35,6 +45,6 @@ struct SettingsView: View {
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView()
+        SettingsView(health: Health())
     }
 }
