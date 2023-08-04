@@ -29,51 +29,9 @@ struct HealthItem: Identifiable {
     let sampleUnitText: String
     let sampleValueFormat: String
     let sampleUnit: HKUnit
-
-    var isVisible: Bool
-
-    init(type: HKQuantityTypeIdentifier,
-        chart: ChartType,
-        image: String,
-        title: String,
-        color: Color,
-        sampleValueTitle: String,
-        sampleUnitText: String,
-        sampleValueFormat: String,
-        sampleUnit: HKUnit,
-        isVisible: Bool = true) {
-
-        self.type = type
-        self.chart = chart
-        self.image = image
-        self.title = title
-        self.color = color
-        self.sampleValueTitle = sampleValueTitle
-        self.sampleUnitText = sampleUnitText
-        self.sampleValueFormat = sampleValueFormat
-        self.sampleUnit = sampleUnit
-        self.isVisible = isVisible
-    }
 }
 
 class Health: ObservableObject {
-
-    init() {
-        for (index, item) in items.enumerated() {
-            items[index].isVisible = UserDefaults.standard.isVisible(for: item.type)
-        }
-    }
-
-    func updateVisibility(for item: HealthItem, to isVisible: Bool) {
-        if let index = items.firstIndex(where: { $0.id == item.id }) {
-            items[index].isVisible = isVisible
-            UserDefaults.standard.setVisibility(isVisible, for: item.type)
-
-            // Update the entire items array to notify the change
-            items = items
-        }
-    }
-
 
     @Published var items: [HealthItem] = [
         HealthItem(type: .activeEnergyBurned,
@@ -292,7 +250,7 @@ class Health: ObservableObject {
         HealthItem(type: .waistCircumference,
             chart: .line,
             image: "figure.arms.open",
-            title: "胸囲",
+            title: "胴囲",
             color: .purple,
             sampleValueTitle: "平均",
             sampleUnitText: "kg",

@@ -80,7 +80,6 @@ struct BloodPressureChartView: View {
             Group {
 
                 valuesContent(systolicMin: systolicMin, systolicMax: systolicMax, diastolicMin: diastolicMin, diastolicMax: diastolicMax)
-                    .padding(.top)
 
                 if SystolicItems.count == 1 {
                     Text(yearMonthDateFormatter.string(from: SystolicItems[range.lowerBound].date))
@@ -154,7 +153,7 @@ struct BloodPressureChartView: View {
                         .foregroundColor(.gray)
                         .fontWeight(.semibold)
                 }
-
+                    .padding(.top)
                 Text(
                     (systolicMin == systolicMax) ?
                     String(format: health.sampleValueFormat, systolicMin ?? 0):
@@ -175,7 +174,7 @@ struct BloodPressureChartView: View {
                         .foregroundColor(.gray)
                         .fontWeight(.semibold)
                 }
-
+                    .padding(.top)
                 Text(
                     (diastolicMin == diastolicMax) ?
                     String(format: health.sampleValueFormat, diastolicMin ?? 0):
@@ -395,7 +394,7 @@ struct BloodPressureChartView: View {
     }
 
     private func calculateBoxWidth(systolicItem: ChartItem, diastolicItem: ChartItem) -> Double {
-        var width = 70.0;
+        var width = 60.0;
 
         if systolicItem.min == systolicItem.max {
             width += 70
@@ -486,7 +485,6 @@ struct BloodPressureChartView: View {
         executeQuery(type: .bloodPressureSystolic) { systolicItems in
 
             if systolicItems.isEmpty {
-                isEmpty = true
                 isLoading = false
                 return
             }
@@ -495,7 +493,6 @@ struct BloodPressureChartView: View {
             executeQuery(type: .bloodPressureDiastolic) { diastolicItems in
 
                 if diastolicItems.isEmpty {
-                    isEmpty = true
                     isLoading = false
                     return
                 }

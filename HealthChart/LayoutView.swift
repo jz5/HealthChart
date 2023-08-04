@@ -53,7 +53,7 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
 
         } else if isEmpty {
             VStack {
-                Text("記録がありません。または、ヘルスケアデータの読み出し許可がありません。")
+                Text("記録がありません。または、ヘルスケアデータの読み取り許可がありません。")
                 
                 AuthorizationView(requested: $requested)
                 .padding(.top)

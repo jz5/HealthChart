@@ -411,9 +411,9 @@ struct RangeChartView: View {
                 let minQ = statistics.minimumQuantity()
                 let maxQ = statistics.maximumQuantity()
 
-                print(statistics)
-                print(minQ)
-                print(maxQ)
+                //print(statistics)
+                //print(minQ)
+                //print(maxQ)
 
                 let min = minQ?.doubleValue(for: health.sampleUnit)
                 let max = maxQ?.doubleValue(for: health.sampleUnit)
