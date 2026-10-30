@@ -240,6 +240,25 @@ struct ChartAnalysisTests {
     }
 }
 
+// MARK: - 数値フォーマット
+
+struct FormatValueTests {
+
+    private let ja = Locale(identifier: "ja_JP")
+
+    @Test func 整数はカンマ区切り() {
+        #expect(formatValue(12345, "%.0f", locale: ja) == "12,345")
+        #expect(formatValue(8500, "%.0f", locale: ja) == "8,500")
+        #expect(formatValue(999, "%.0f", locale: ja) == "999")
+    }
+
+    @Test func 小数桁はフォーマットに従う() {
+        #expect(formatValue(12345.678, "%.1f", locale: ja) == "12,345.7")
+        #expect(formatValue(65.2, "%.2f", locale: ja) == "65.20")
+        #expect(formatValue(1234.5, "%.0f", locale: ja) == "1,235")
+    }
+}
+
 // MARK: - カタログ
 
 struct HealthCatalogTests {

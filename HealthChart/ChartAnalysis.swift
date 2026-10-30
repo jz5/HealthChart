@@ -206,7 +206,7 @@ struct AnalysisMarks: ChartContent {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 3]))
                     .foregroundStyle(color.opacity(0.7))
                     .annotation(position: .trailing, alignment: .leading) {
-                        Text(String(format: valueFormat, median))
+                        Text(formatValue(median, valueFormat))
                             .font(.caption2)
                             .foregroundColor(color.opacity(0.7))
                     }
@@ -217,7 +217,7 @@ struct AnalysisMarks: ChartContent {
                 .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [8, 4]))
                 .foregroundStyle(.teal)
                 .annotation(position: .topTrailing, alignment: .trailing) {
-                    Text("目標 " + String(format: valueFormat, goal))
+                    Text("目標 " + formatValue(goal, valueFormat))
                         .font(.caption2)
                         .foregroundColor(.teal)
                 }
@@ -234,6 +234,7 @@ struct AnalysisOptionsView: View {
     let goalKey: String
     @Binding var goal: Double?
     @State private var goalText = ""
+    @FocusState private var goalFocused: Bool
 
     var body: some View {
         Toggle("移動平均(3/12ヶ月)", isOn: $showMovingAverage)
@@ -244,8 +245,18 @@ struct AnalysisOptionsView: View {
             TextField("なし", text: $goalText)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
+                .focused($goalFocused)
                 .onChange(of: goalText) {
                     saveGoal()
+                }
+                .toolbar {
+                    // テンキーには閉じるキーがないため「完了」を付ける
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("完了") {
+                            goalFocused = false
+                        }
+                    }
                 }
             if goal != nil {
                 Button {
@@ -298,8 +309,8 @@ struct AnalysisSummaryView: View {
                 let values = points.map { $0.value }
                 if let median = ChartAnalysis.median(values),
                    let sd = ChartAnalysis.standardDeviation(values) {
-                    Text("中央値 " + String(format: valueFormat, median) + unitText +
-                         " ・ 標準偏差 " + String(format: valueFormat, sd))
+                    Text("中央値 " + formatValue(median, valueFormat) + unitText +
+                         " ・ 標準偏差 " + formatValue(sd, valueFormat))
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
@@ -309,6 +320,6 @@ struct AnalysisSummaryView: View {
 
     private func slopeText(_ slope: Double) -> String {
         let sign = slope >= 0 ? "+" : ""
-        return sign + String(format: valueFormat, slope) + unitText + "/月"
+        return sign + formatValue(slope, valueFormat) + unitText + "/月"
     }
 }

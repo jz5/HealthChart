@@ -18,6 +18,8 @@ struct BarChartView: View {
     @State var range: ClosedRange<Int>
     @State var inRange: ClosedRange<Int>
     @State var value: Double?
+    /// チャートのY軸は常に日平均スケールなので、平均線用に期間切替と独立して持つ
+    @State private var dailyAverage: Double?
 
     @State var isLoading = true
     @State var isEmpty = false
@@ -49,6 +51,22 @@ struct BarChartView: View {
 
     @State private var selectedItem: ChartItem? = nil
 
+    enum AveragePeriod: String, CaseIterable, Identifiable {
+        case day = "日"
+        case month = "月"
+        case year = "年"
+        var id: Self { self }
+
+        var title: String {
+            switch self {
+            case .day: return "1日の平均"
+            case .month: return "1ヶ月の平均"
+            case .year: return "1年の平均"
+            }
+        }
+    }
+    @State private var period: AveragePeriod = .day
+
     init(health: HealthItem) {
         self.health = health
 
@@ -68,11 +86,21 @@ struct BarChartView: View {
     var body: some View {
         LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, header: {
             Group {
-                Text(health.sampleValueTitle)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .fontWeight(.semibold)
-                    .padding(.top)
+                HStack {
+                    Text(period.title)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Picker("期間", selection: $period) {
+                        ForEach(AveragePeriod.allCases) { p in
+                            Text(p.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 150)
+                }
+                .padding(.top)
 
                 HStack(alignment: .bottom) {
                     if value == nil {
@@ -81,7 +109,7 @@ struct BarChartView: View {
                             .font(.system(.largeTitle, design: .rounded))
 
                     } else {
-                        Text(String(format: health.sampleValueFormat, value ?? 0))
+                        Text(formatValue(value ?? 0, health.sampleValueFormat))
                             .fontWeight(.medium)
                             .font(.system(.largeTitle, design: .rounded))
                             +
@@ -140,12 +168,12 @@ struct BarChartView: View {
                             }
                         }
                         if showAverage,
-                            let value {
-                            RuleMark(y: .value("平均", value))
+                            let dailyAverage {
+                            RuleMark(y: .value("平均", dailyAverage))
                                 .lineStyle(StrokeStyle(lineWidth: 1))
                                 .foregroundStyle(health.color)
                                 .annotation(position: .trailing, alignment: .leading) {
-                                Text(String(format: health.sampleValueFormat, value))
+                                Text(formatValue(dailyAverage, health.sampleValueFormat))
                                     .font(.caption)
                                     .foregroundColor(health.color) }
 
@@ -160,7 +188,7 @@ struct BarChartView: View {
                                     .lineStyle(StrokeStyle(lineWidth: 1))
                                     .foregroundStyle(health.color)
                                     .annotation(position: .trailing, alignment: .leading) {
-                                    Text(String(format: health.sampleValueFormat, max.value))
+                                    Text(formatValue(max.value, health.sampleValueFormat))
                                         .font(.caption)
                                         .foregroundColor(health.color) }
                             }
@@ -251,7 +279,7 @@ struct BarChartView: View {
 
                                     VStack(alignment: .center) {
 
-                                        Text(String(format: health.sampleValueFormat, selectedItem.value))
+                                        Text(formatValue(selectedItem.value, health.sampleValueFormat))
                                             .fontWeight(.medium)
                                             .font(.system(.largeTitle, design: .rounded))
                                         Text(yearMonthDateFormatter.string(from: selectedItem.date))
@@ -317,6 +345,9 @@ struct BarChartView: View {
                     await load()
                 }
             }
+            .onChange(of: period) {
+                calculateAverage()
+            }
     }
 
     private var rangePoints: [DatedValue] {
@@ -354,13 +385,26 @@ struct BarChartView: View {
     private func calculateAverage() {
 
         var sum: Double = 0
-        var count: Int = 0
+        var dayCount: Int = 0
+        var monthCount: Int = 0
 
         for i in range where items.indices.contains(i) {
             sum += items[i].sum
-            count += items[i].count
+            dayCount += items[i].count
+            monthCount += 1
         }
-        value = count > 0 ? sum / Double(count) : nil
+
+        dailyAverage = dayCount > 0 ? sum / Double(dayCount) : nil
+
+        switch period {
+        case .day:
+            value = dailyAverage
+        case .month:
+            value = monthCount > 0 ? sum / Double(monthCount) : nil
+        case .year:
+            // 端数の年をそのまま年数で割ると過小になるため、月平均×12で年換算する
+            value = monthCount > 0 ? sum / Double(monthCount) * 12 : nil
+        }
     }
 
     private func load() async {

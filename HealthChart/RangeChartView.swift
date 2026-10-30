@@ -264,9 +264,9 @@ struct RangeChartView: View {
 
     private func rangeText(min: Double, max: Double) -> String {
         if min == max {
-            return String(format: health.sampleValueFormat, min)
+            return formatValue(min, health.sampleValueFormat)
         }
-        return String(format: health.sampleValueFormat, min) + "–" + String(format: health.sampleValueFormat, max)
+        return formatValue(min, health.sampleValueFormat) + "–" + formatValue(max, health.sampleValueFormat)
     }
 
     private func barWidth(_ width: Double) -> MarkDimension {

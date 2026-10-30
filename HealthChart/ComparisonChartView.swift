@@ -20,6 +20,13 @@ struct ComparisonChartView: View {
     @State private var pointsB: [DatedValue] = []
     @State private var isLoading = true
 
+    /// ホームのお気に入りの組み合わせから開くときは、最初のクエリが走る前に
+    /// 保存値を書き換えておく(onAppearだと旧ペアのロードと競合する)
+    init(presetA: String? = nil, presetB: String? = nil) {
+        if let presetA { UserDefaults.standard.set(presetA, forKey: "compare.itemA") }
+        if let presetB { UserDefaults.standard.set(presetB, forKey: "compare.itemB") }
+    }
+
     /// 血圧(特別チャート)以外の表示可能な項目
     private var selectableItems: [HealthItem] {
         Health.shared.items.filter { $0.chart == .bar || $0.chart == .line || $0.chart == .range }
@@ -54,7 +61,9 @@ struct ComparisonChartView: View {
                     Text("比較できるデータがありません")
                         .foregroundColor(.gray)
                 } else {
-                    correlationContent
+                    let pairs = matchedPairs()
+                    correlationContent(pairs: pairs)
+                    scatterContent(pairs: pairs)
                     if let itemA {
                         chartContent(item: itemA, points: pointsA)
                     }
@@ -68,6 +77,11 @@ struct ComparisonChartView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("2項目の比較")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                ComparisonFavoriteButton(typeA: typeA, typeB: typeB)
+            }
+        }
         .task(id: typeA + "|" + typeB) {
             await load()
         }
@@ -76,8 +90,7 @@ struct ComparisonChartView: View {
     // MARK: - Content
 
     @ViewBuilder
-    private var correlationContent: some View {
-        let pairs = matchedPairs()
+    private func correlationContent(pairs: [(Double, Double)]) -> some View {
         if pairs.count >= 3,
            let r = ChartAnalysis.pearsonCorrelation(xs: pairs.map { $0.0 }, ys: pairs.map { $0.1 }) {
             VStack(alignment: .leading, spacing: 4) {
@@ -101,6 +114,48 @@ struct ComparisonChartView: View {
             Text("重なる月が3ヶ月未満のため相関を計算できません")
                 .font(.caption)
                 .foregroundColor(.gray)
+        }
+    }
+
+    /// 同じ月の2項目の値を散布図で描き、回帰直線を重ねる
+    @ViewBuilder
+    private func scatterContent(pairs: [(Double, Double)]) -> some View {
+        if pairs.count >= 3, let itemA, let itemB {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chart.dots.scatter")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Text("横: \(itemA.title)(\(itemA.sampleUnitText)) ・ 縦: \(itemB.title)(\(itemB.sampleUnitText))")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                Chart {
+                    ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
+                        PointMark(
+                            x: .value(itemA.title, pair.0),
+                            y: .value(itemB.title, pair.1)
+                        )
+                        .foregroundStyle(itemB.color.opacity(0.55))
+                        .symbolSize(30)
+                    }
+                    if let fit = ChartAnalysis.linearRegression(xs: pairs.map { $0.0 }, ys: pairs.map { $0.1 }),
+                       let minX = pairs.map({ $0.0 }).min(),
+                       let maxX = pairs.map({ $0.0 }).max(),
+                       minX < maxX {
+                        LineMark(x: .value("x", minX), y: .value("y", fit.slope * minX + fit.intercept))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundStyle(.gray)
+                        LineMark(x: .value("x", maxX), y: .value("y", fit.slope * maxX + fit.intercept))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundStyle(.gray)
+                    }
+                }
+                .chartXScale(domain: .automatic(includesZero: false))
+                .chartYScale(domain: .automatic(includesZero: false))
+                .frame(height: 220)
+            }
+            .padding(.vertical, 4)
         }
     }
 
@@ -188,6 +243,23 @@ struct ComparisonChartView: View {
             }
             return value.map { DatedValue(date: stat.midDate, value: $0) }
         }
+    }
+}
+
+/// 現在の組み合わせをお気に入りに登録・解除するボタン
+struct ComparisonFavoriteButton: View {
+    @ObservedObject var store = ComparisonPairs.shared
+    let typeA: String
+    let typeB: String
+
+    var body: some View {
+        Button {
+            store.toggle(typeA, typeB)
+        } label: {
+            Image(systemName: store.contains(typeA, typeB) ? "star.fill" : "star")
+                .foregroundColor(.yellow)
+        }
+        .disabled(typeA == typeB) // 同一項目同士は登録しない
     }
 }
 

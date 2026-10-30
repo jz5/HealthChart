@@ -80,7 +80,7 @@ struct LineChartView: View {
                             .font(.system(.largeTitle, design: .rounded))
 
                     } else {
-                        Text(String(format: health.sampleValueFormat, value ?? 0))
+                        Text(formatValue(value ?? 0, health.sampleValueFormat))
                             .fontWeight(.medium)
                             .font(.system(.largeTitle, design: .rounded))
                         +
@@ -137,7 +137,7 @@ struct LineChartView: View {
                         .lineStyle(StrokeStyle(lineWidth: 1))
                         .foregroundStyle(health.color)
                         .annotation(position: .trailing, alignment: .leading) {
-                                            Text(String(format: health.sampleValueFormat, value))
+                                            Text(formatValue(value, health.sampleValueFormat))
                                             .font(.caption)
                                             .foregroundColor(health.color)}
 
@@ -155,7 +155,7 @@ struct LineChartView: View {
                             .lineStyle(StrokeStyle(lineWidth: 1))
                             .foregroundStyle(health.color)
                             .annotation(position: .trailing, alignment: .leading) {
-                                                Text(String(format: health.sampleValueFormat, min.value))
+                                                Text(formatValue(min.value, health.sampleValueFormat))
                                                 .font(.caption)
                                                 .foregroundColor(health.color)}
                     }
@@ -164,7 +164,7 @@ struct LineChartView: View {
                             .lineStyle(StrokeStyle(lineWidth: 1))
                             .foregroundStyle(health.color)
                             .annotation(position: .trailing, alignment: .leading) {
-                                                Text(String(format: health.sampleValueFormat, max.value))
+                                                Text(formatValue(max.value, health.sampleValueFormat))
                                                 .font(.caption)
                                                 .foregroundColor(health.color)}
                     }
@@ -255,7 +255,7 @@ struct LineChartView: View {
 
                             VStack(alignment: .center) {
 
-                                Text(String(format: health.sampleValueFormat, selectedItem.value))
+                                Text(formatValue(selectedItem.value, health.sampleValueFormat))
                                     .fontWeight(.medium)
                                     .font(.system(.largeTitle, design: .rounded))
                                 Text(yearMonthDateFormatter.string(from: selectedItem.date))

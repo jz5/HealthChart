@@ -151,8 +151,8 @@ struct BloodPressureChartView: View {
                     .padding(.top)
                 Text(
                     (systolicMin == systolicMax) ?
-                    String(format: health.sampleValueFormat, systolicMin ?? 0):
-                        String(format: health.sampleValueFormat, systolicMin ?? 0) + "–" + String(format: health.sampleValueFormat, systolicMax ?? 0)
+                    formatValue(systolicMin ?? 0, health.sampleValueFormat):
+                        formatValue(systolicMin ?? 0, health.sampleValueFormat) + "–" + formatValue(systolicMax ?? 0, health.sampleValueFormat)
                 )
                     .fontWeight(.medium)
                     .font(.system(.largeTitle, design: .rounded))
@@ -172,8 +172,8 @@ struct BloodPressureChartView: View {
                     .padding(.top)
                 Text(
                     (diastolicMin == diastolicMax) ?
-                    String(format: health.sampleValueFormat, diastolicMin ?? 0):
-                        String(format: health.sampleValueFormat, diastolicMin ?? 0) + "–" + String(format: health.sampleValueFormat, diastolicMax ?? 0)
+                    formatValue(diastolicMin ?? 0, health.sampleValueFormat):
+                        formatValue(diastolicMin ?? 0, health.sampleValueFormat) + "–" + formatValue(diastolicMax ?? 0, health.sampleValueFormat)
                 )
                     .fontWeight(.medium)
                     .font(.system(.largeTitle, design: .rounded))

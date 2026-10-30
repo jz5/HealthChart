@@ -18,8 +18,8 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     var footer: Footer
 
     @Environment(\.colorScheme) var colorScheme
-    
-    @State var orientation: UIDeviceOrientation
+    @Environment(\.verticalSizeClass) var verticalSizeClass
+
     @State var showActivityIndicator: Bool = false
 
     let isHealthDataAvailable = HKHealthStore.isHealthDataAvailable()
@@ -34,7 +34,6 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
         self.header = header()
         self.chart = chart()
         self.footer = footer()
-        self._orientation = State(wrappedValue: UIDevice.current.orientation)
 
         self._isLoading = isLoading
         self._isEmpty = isEmpty
@@ -62,7 +61,8 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
             .background(.background)
 
 
-        } else if isPortrait() {
+        } else if verticalSizeClass != .compact {
+            // iPhone縦・iPad(縦横とも): ヘッダー+チャート+設定のスクロールレイアウト
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Group {
@@ -76,9 +76,7 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
                 .background(.background)
                 footer
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-                orientation = UIDevice.current.orientation
-            }
+            .scrollDismissesKeyboard(.immediately)
             .background(Color(colorScheme == .dark ? UIColor.systemBackground : UIColor.secondarySystemBackground))
             /*.toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -88,12 +86,10 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
             }*/
             
         } else {
+            // iPhone横向き: チャートのみ全画面表示
             ZStack {
                 chart
-                    .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-                        orientation = UIDevice.current.orientation
-                    }
-                .padding()
+                    .padding()
             }
             .background(.background)
             /*.toolbar {
@@ -112,19 +108,6 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
         renderer.scale = UIScreen.main.scale
         renderer.proposedSize = ProposedViewSize(CGSize(width: 800, height: 400))
         return renderer.uiImage ?? UIImage()
-    }
-    
-    private func isPortrait() -> Bool {
-        
-        var isLandscape = orientation.isLandscape
-        var isPortrait = orientation.isPortrait
-        
-        if !isLandscape && !isPortrait {
-            isPortrait = UIScreen.main.bounds.width < UIScreen.main.bounds.height
-            isLandscape = !isPortrait
-        }
-        
-        return isPortrait
     }
 }
 

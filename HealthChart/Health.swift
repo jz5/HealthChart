@@ -334,3 +334,79 @@ class Health: ObservableObject {
         return items.filter { HKQuantityType.quantityType(forIdentifier: $0.type) != nil }
     }
 }
+
+/// お気に入り項目(追加順)をUserDefaultsに保持する
+final class Favorites: ObservableObject {
+    static let shared = Favorites()
+    private static let key = "favoriteTypes"
+
+    @Published private(set) var types: [String]
+
+    private init() {
+        types = UserDefaults.standard.stringArray(forKey: Self.key) ?? []
+    }
+
+    func contains(_ item: HealthItem) -> Bool {
+        types.contains(item.type.rawValue)
+    }
+
+    func toggle(_ item: HealthItem) {
+        if let index = types.firstIndex(of: item.type.rawValue) {
+            types.remove(at: index)
+        } else {
+            types.append(item.type.rawValue)
+        }
+        UserDefaults.standard.set(types, forKey: Self.key)
+    }
+}
+
+/// printfフォーマットの小数桁数を保ちつつ、3桁区切りで数値を整形する
+func formatValue(_ value: Double, _ format: String, locale: Locale = .current) -> String {
+    let digits: Int
+    if let match = format.range(of: #"%[+]?\.(\d+)f"#, options: .regularExpression) {
+        let digitsText = format[match].drop { $0 != "." }.dropFirst().dropLast()
+        digits = Int(digitsText) ?? 0
+    } else {
+        digits = 0
+    }
+    let formatter = NumberFormatter()
+    formatter.locale = locale
+    formatter.numberStyle = .decimal
+    formatter.roundingMode = .halfUp
+    formatter.minimumFractionDigits = digits
+    formatter.maximumFractionDigits = digits
+    return formatter.string(from: NSNumber(value: value)) ?? String(format: format, value)
+}
+
+/// 2項目比較のお気に入りの組み合わせ("typeA|typeB" 形式、追加順)をUserDefaultsに保持する
+final class ComparisonPairs: ObservableObject {
+    static let shared = ComparisonPairs()
+    private static let key = "comparisonPairs"
+
+    @Published private(set) var pairs: [String]
+
+    private init() {
+        pairs = UserDefaults.standard.stringArray(forKey: Self.key) ?? []
+    }
+
+    static func pairKey(_ a: String, _ b: String) -> String { a + "|" + b }
+
+    /// 順序によらず同じ組み合わせとみなす
+    func contains(_ a: String, _ b: String) -> Bool {
+        pairs.contains(Self.pairKey(a, b)) || pairs.contains(Self.pairKey(b, a))
+    }
+
+    func toggle(_ a: String, _ b: String) {
+        if let index = pairs.firstIndex(where: { $0 == Self.pairKey(a, b) || $0 == Self.pairKey(b, a) }) {
+            pairs.remove(at: index)
+        } else {
+            pairs.append(Self.pairKey(a, b))
+        }
+        UserDefaults.standard.set(pairs, forKey: Self.key)
+    }
+
+    func remove(_ key: String) {
+        pairs.removeAll { $0 == key }
+        UserDefaults.standard.set(pairs, forKey: Self.key)
+    }
+}
