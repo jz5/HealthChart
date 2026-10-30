@@ -11,11 +11,10 @@ import HealthKit
 import Sliders
 
 struct BloodPressureChartView: View {
-    @State public var health: HealthItem
+    let health: HealthItem
 
     @Environment(\.colorScheme) var colorScheme
 
-    @State var orientation: UIDeviceOrientation
     @State var range: ClosedRange<Int>
     @State var inRange: ClosedRange<Int>
 
@@ -51,17 +50,12 @@ struct BloodPressureChartView: View {
     @AppStorage("startYear") private var startYear = 2014
     @AppStorage("showMinMax") var showMinMax = false
 
-    @State var disappeared = false
-
     @State private var selectedSystolicItem: ChartItem? = nil
     @State private var selectedDiastolicItem: ChartItem? = nil
 
-    let healthStore: HKHealthStore? = HKHealthStore.isHealthDataAvailable() ? HKHealthStore() : nil
-
     init(health: HealthItem) {
-        _health = State(initialValue: health)
+        self.health = health
 
-        _orientation = State(initialValue: UIDevice.current.orientation)
         _range = State(initialValue: 0...0)
         _inRange = State(initialValue: 0...0)
 
@@ -81,19 +75,20 @@ struct BloodPressureChartView: View {
 
                 valuesContent(systolicMin: systolicMin, systolicMax: systolicMax, diastolicMin: diastolicMin, diastolicMax: diastolicMax)
 
-                if SystolicItems.count == 1 {
-                    Text(yearMonthDateFormatter.string(from: SystolicItems[range.lowerBound].date))
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .fontWeight(.semibold)
-                }
                 if !SystolicItems.isEmpty {
-                    Text(
-                        yearMonthDateFormatter.string(from: SystolicItems[range.lowerBound].date) + "〜" +
-                            yearMonthDateFormatter.string(from: SystolicItems[range.upperBound].date))
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .fontWeight(.semibold)
+                    if range.lowerBound == range.upperBound {
+                        Text(yearMonthDateFormatter.string(from: SystolicItems[range.lowerBound].date))
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .fontWeight(.semibold)
+                    } else {
+                        Text(
+                            yearMonthDateFormatter.string(from: SystolicItems[range.lowerBound].date) + "〜" +
+                                yearMonthDateFormatter.string(from: SystolicItems[range.upperBound].date))
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .fontWeight(.semibold)
+                    }
                 }
             }
 
@@ -114,7 +109,7 @@ struct BloodPressureChartView: View {
                             } else {
                                 calculateMinMax()
                             }
-                        }).disabled(isEmpty)
+                        }).disabled(!isCompleted || isEmpty)
 
 //                    Toggle("平均", isOn: $showAverage)
 
@@ -130,14 +125,13 @@ struct BloodPressureChartView: View {
         .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(health.title)
             .background(Color(colorScheme == .dark ? UIColor.systemBackground : UIColor.secondarySystemBackground))
-            .onAppear() {
-            executeQueries()
+            .task {
+            await load()
         }
-            .onChange(of: requested) { newValue in
-            executeQueries()
-        }
-            .onDisappear() {
-            disappeared = true
+            .onChange(of: requested) {
+            Task {
+                await load()
+            }
         }
     }
 
@@ -348,13 +342,14 @@ struct BloodPressureChartView: View {
             ZStack(alignment: .topLeading) {
                 GeometryReader { geo in
                     if let selectedSystolicItem,
-                        let selectedDiastolicItem {
+                        let selectedDiastolicItem,
+                        let plotFrame = proxy.plotFrame {
 
                         let dateInterval = Calendar.current.dateInterval(of: .day, for: selectedSystolicItem.date)!
                         let startPositionX1 = proxy.position(forX: dateInterval.start) ?? 0
 
-                        let lineX = startPositionX1 + geo[proxy.plotAreaFrame].origin.x
-                        let lineHeight = geo[proxy.plotAreaFrame].maxY
+                        let lineX = startPositionX1 + geo[plotFrame].origin.x
+                        let lineHeight = geo[plotFrame].maxY
                         let boxWidth: CGFloat = calculateBoxWidth(systolicItem: selectedSystolicItem, diastolicItem: selectedDiastolicItem)
                         let boxOffset = max(0, min(geo.size.width - boxWidth, lineX - boxWidth / 2))
 
@@ -437,7 +432,8 @@ struct BloodPressureChartView: View {
     }
 
     private func findElement(location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) -> Int? {
-        let relativeXPosition = location.x - geometry[proxy.plotAreaFrame].origin.x
+        guard let plotFrame = proxy.plotFrame else { return nil }
+        let relativeXPosition = location.x - geometry[plotFrame].origin.x
         if let date = proxy.value(atX: relativeXPosition) as Date? {
             // Find the closest date element.
             var minDistance: TimeInterval = .infinity
@@ -480,98 +476,55 @@ struct BloodPressureChartView: View {
 
     }
 
-    // 最高血圧・最低血圧を順に取得
-    private func executeQueries() {
-        executeQuery(type: .bloodPressureSystolic) { systolicItems in
+    // 最高血圧・最低血圧を取得し、両方のデータがある月だけをペアにする
+    private func load() async {
+        isLoading = true
+        isCompleted = false
+        selectedSystolicItem = nil
+        selectedDiastolicItem = nil
 
-            if systolicItems.isEmpty {
-                isLoading = false
-                return
-            }
+        let service = HealthStatsService.shared
+        let systolicItem = Health.shared.items.first { $0.type == .bloodPressureSystolic } ?? health
+        let diastolicItem = Health.shared.items.first { $0.type == .bloodPressureDiastolic } ?? health
 
+        let systolicStats = await service.monthlyStats(for: systolicItem, startYear: startYear)
+        let diastolicStats = await service.monthlyStats(for: diastolicItem, startYear: startYear)
 
-            executeQuery(type: .bloodPressureDiastolic) { diastolicItems in
+        let diastolicByKey = Dictionary(uniqueKeysWithValues: diastolicStats.map { ($0.key, $0) })
 
-                if diastolicItems.isEmpty {
-                    isLoading = false
-                    return
-                }
+        var systolicItems: [ChartItem] = []
+        var diastolicItems: [ChartItem] = []
 
-                // 同数の最高・最低血圧のデータがなければデータなし扱い
-                if systolicItems.count != diastolicItems.count {
-                    isLoading = false
-                    return
-                }
+        for stat in systolicStats {
+            guard let sMin = stat.minValue, let sMax = stat.maxValue,
+                  let dStat = diastolicByKey[stat.key],
+                  let dMin = dStat.minValue, let dMax = dStat.maxValue else { continue }
 
-                SystolicItems = systolicItems
-                DiastolicItems = diastolicItems
-
-                range = 0...systolicItems.count - 1
-                inRange = 0...systolicItems.count - 1
-
-                calculateMinMax()
-
-                isEmpty = false
-                isLoading = false
-
-            }
-        }
-    }
-
-    private func executeQuery(type: HKQuantityTypeIdentifier, completionHandler: @escaping ([ChartItem]) -> Void) {
-        let calendar = Calendar.current
-        let startDate = calendar.date(from: DateComponents(year: startYear, month: 1, day: 1, hour: 0, minute: 0, second: 0))!
-        let endDate = calendar.date(from: calendar.dateComponents(in: TimeZone.current, from: Date()))!
-
-        var dateComponent = DateComponents()
-        dateComponent.month = 1
-
-        let predicate = HKQuery.predicateForSamples(
-            withStart: startDate,
-            end: endDate
-        )
-
-        let sampleType = HKQuantityType.quantityType(forIdentifier: type)!
-
-        let query = HKStatisticsCollectionQuery(
-            quantityType: sampleType,
-            quantitySamplePredicate: predicate,
-            options: [.discreteMin, .discreteMax],
-            anchorDate: startDate,
-            intervalComponents: DateComponents(month: 1))
-
-        query.initialResultsHandler = {
-            query, collection, error in
-
-            var newItems: [ChartItem] = []
-
-            collection?.enumerateStatistics(
-                from: startDate,
-                to: endDate
-            ) { statistics, stop in
-                let minQ = statistics.minimumQuantity()
-                let maxQ = statistics.maximumQuantity()
-
-                let min = minQ?.doubleValue(for: health.sampleUnit)
-                let max = maxQ?.doubleValue(for: health.sampleUnit)
-
-                let span = statistics.endDate.timeIntervalSince(statistics.startDate)
-                let date = statistics.startDate.addingTimeInterval(span / 2)
-
-                if let min, let max {
-                    newItems.append(ChartItem(
-                        date: date,
-                        startDate: statistics.startDate,
-                        endDate: statistics.endDate,
-                        min: min,
-                        max: max))
-                }
-            }
-
-            completionHandler(newItems)
+            systolicItems.append(ChartItem(
+                date: stat.midDate, startDate: stat.startDate, endDate: stat.endDate,
+                min: sMin, max: sMax))
+            diastolicItems.append(ChartItem(
+                date: dStat.midDate, startDate: dStat.startDate, endDate: dStat.endDate,
+                min: dMin, max: dMax))
         }
 
-        healthStore!.execute(query)
+        SystolicItems = systolicItems
+        DiastolicItems = diastolicItems
+
+        isEmpty = systolicItems.isEmpty
+        isLoading = false
+        isCompleted = true
+
+        if !systolicItems.isEmpty {
+            range = 0...systolicItems.count - 1
+            inRange = 0...systolicItems.count - 1
+            calculateMinMax()
+        } else {
+            systolicMin = nil
+            systolicMax = nil
+            diastolicMin = nil
+            diastolicMax = nil
+        }
     }
 
 }

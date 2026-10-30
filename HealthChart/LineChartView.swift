@@ -11,19 +11,19 @@ import HealthKit
 import Sliders
 
 struct LineChartView: View {
-    @State public var health: HealthItem
-    
+    let health: HealthItem
+
     @Environment(\.colorScheme) var colorScheme
-    
-    @State var orientation: UIDeviceOrientation
+
     @State var range: ClosedRange<Int>
     @State var inRange: ClosedRange<Int>
     @State var value: Double?
-    
+
     @State var isLoading = true
     @State var isEmpty = false
+    @State var isCompleted = false
     @State var requested = false
-    
+
     struct ChartItem: Identifiable {
         var id = UUID()
         var value: Double
@@ -32,27 +32,24 @@ struct LineChartView: View {
         var endDate: Date
     }
     @State var items: [ChartItem] = []
-    
+
     let yearDateFormatter = DateFormatter()
     let monthDateFormatter = DateFormatter()
     let yearMonthDateFormatter = DateFormatter()
-    
+
     @AppStorage("startYear") private var startYear = 2014
     @AppStorage("showMinMax") var showMinMax = false
     @AppStorage("showAverage") var showAverage = false
     @AppStorage("showSymbols") var showSymbols = true
 
     @State private var selectedItem: ChartItem? = nil
-    
-    let healthStore: HKHealthStore? = HKHealthStore.isHealthDataAvailable() ? HKHealthStore() : nil
-    
+
     init(health: HealthItem) {
-        _health = State(initialValue: health)
-        
-        _orientation = State(initialValue: UIDevice.current.orientation)
+        self.health = health
+
         _range = State(initialValue: 0...0)
         _inRange = State(initialValue: 0...0)
-        
+
         yearMonthDateFormatter.locale = Locale(identifier: "ja_JP")
         yearMonthDateFormatter.setLocalizedDateFormatFromTemplate("yMMM")
 
@@ -62,7 +59,7 @@ struct LineChartView: View {
         yearDateFormatter.locale = Locale(identifier: "ja_JP")
         yearDateFormatter.setLocalizedDateFormatFromTemplate("y")
     }
-    
+
     var body: some View {
         LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, header: {
             Group {
@@ -71,7 +68,7 @@ struct LineChartView: View {
                     .foregroundColor(.gray)
                     .fontWeight(.semibold)
                     .padding(.top)
-                
+
                 HStack(alignment: .bottom) {
                     if value == nil {
                         Text("データなし")
@@ -89,29 +86,30 @@ struct LineChartView: View {
                             .font(.system(.subheadline, design: .rounded))
                     }
                 }
-                if items.count == 1 {
-                    Text(yearMonthDateFormatter.string(from: items[range.lowerBound].date))
+                if !items.isEmpty {
+                    if range.lowerBound == range.upperBound {
+                        Text(yearMonthDateFormatter.string(from: items[range.lowerBound].date))
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .fontWeight(.semibold)
+                    } else {
+                        Text(
+                            yearMonthDateFormatter.string(from: items[range.lowerBound].date) + "〜" +
+                            yearMonthDateFormatter.string(from: items[range.upperBound].date))
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .fontWeight(.semibold)
-                }
-                if !items.isEmpty {
-                    Text(
-                        yearMonthDateFormatter.string(from: items[range.lowerBound].date) + "〜" +
-                        yearMonthDateFormatter.string(from: items[range.upperBound].date))
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .fontWeight(.semibold)
+                    }
                 }
             }
-            
-            
+
+
         }, chart: {
             let filteredItems = items.filter {
                 $0.date >= items[range.lowerBound].date &&
                 $0.date <= items[range.upperBound].date
             }
-            
+
             Chart {
                 ForEach(filteredItems) {
                     LineMark (
@@ -125,7 +123,7 @@ struct LineChartView: View {
                     .accessibilityValue("\($0.value) " + health.sampleUnitText)
                     .foregroundStyle(health.color)
                 }
-                
+
                 if showAverage,
                    let value {
                     RuleMark(y: .value("平均", value))
@@ -165,19 +163,16 @@ struct LineChartView: View {
                     }
 
                 }
-                /*if let selectedItem {
-                    RuleMark(x: .value("", selectedItem.date))
-                }*/
             }
             .chartXAxis {
                 AxisMarks(values: .stride(by: .month, count: 1)) { value in
                     if let date = value.as(Date.self) {
-                        
+
                         let elapsed = Calendar.current.dateComponents(
                             [.year],
                             from: items[range.lowerBound].date,
-                            to: items[range.upperBound].date).year!
-                        
+                            to: items[range.upperBound].date).year ?? 0
+
                         if elapsed < 1 {
                             AxisGridLine(stroke: .init(lineWidth: 0.5))
                             AxisTick(stroke: .init(lineWidth: 0.5))
@@ -208,7 +203,7 @@ struct LineChartView: View {
                         .gesture(
                             SpatialTapGesture()
                                 .onEnded { value in
-                                    let element = findElement(location: value.location, proxy: proxy, geometry: geo)
+                                    let element = findElement(location: value.location, proxy: proxy, geometry: geo, in: filteredItems)
                                     if selectedItem?.date == element?.date {
                                         // If tapping the same element, clear the selection.
                                         selectedItem = nil
@@ -219,7 +214,7 @@ struct LineChartView: View {
                                 .exclusively(
                                     before: DragGesture()
                                         .onChanged { value in
-                                            selectedItem = findElement(location: value.location, proxy: proxy, geometry: geo)
+                                            selectedItem = findElement(location: value.location, proxy: proxy, geometry: geo, in: filteredItems)
                                         }
                                 )
                         )
@@ -228,23 +223,23 @@ struct LineChartView: View {
             .chartBackground { proxy in
                 ZStack(alignment: .topLeading) {
                     GeometryReader { geo in
-                        if true,
-                           let selectedItem {
+                        if let selectedItem,
+                           let plotFrame = proxy.plotFrame {
                             let dateInterval = Calendar.current.dateInterval(of: .day, for: selectedItem.date)!
                             let startPositionX1 = proxy.position(forX: dateInterval.start) ?? 0
-                            
-                            let lineX = startPositionX1 + geo[proxy.plotAreaFrame].origin.x
-                            let lineHeight = geo[proxy.plotAreaFrame].maxY
+
+                            let lineX = startPositionX1 + geo[plotFrame].origin.x
+                            let lineHeight = geo[plotFrame].maxY
                             let boxWidth: CGFloat = 120
                             let boxOffset = max(0, min(geo.size.width - boxWidth, lineX - boxWidth / 2))
-                            
+
                             Rectangle()
                                 .fill(Color.lolipopBarColor)
                                 .frame(width: 2, height: lineHeight)
                                 .position(x: lineX, y: lineHeight / 2)
-                            
+
                             VStack(alignment: .center) {
-                                
+
                                 Text(String(format: health.sampleValueFormat, selectedItem.value))
                                     .fontWeight(.medium)
                                     .font(.system(.largeTitle, design: .rounded))
@@ -268,7 +263,7 @@ struct LineChartView: View {
                     }
                 }
             }
-                
+
         }, footer: {
             Form {
                 RangeSlider(range: $range, in: inRange, step: 1,
@@ -278,8 +273,8 @@ struct LineChartView: View {
                     } else {
                         calculateAverage()
                     }
-                })
-                
+                }).disabled(!isCompleted || isEmpty)
+
                 Toggle("平均", isOn: $showAverage)
                 Toggle("最小・最大", isOn: $showMinMax)
                 Toggle("シンボル", isOn: $showSymbols)
@@ -287,144 +282,96 @@ struct LineChartView: View {
             }
             .frame(height: 300)
             .scrollContentBackground(.hidden)
-            
+
 
         })
-        //.toolbar {
-        //    ToolbarItem(placement: .principal) { Text(health.title).fontWeight(.semibold) }
-        //}
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle(health.title)
         .background(Color(colorScheme == .dark ? UIColor.systemBackground : UIColor.secondarySystemBackground))
-        .onAppear() {
-            executeQuery()
+        .task {
+            await load()
         }
-        .onChange(of: requested) { newValue in
-            executeQuery()
+        .onChange(of: requested) {
+            Task {
+                await load()
+            }
         }
     }
-    
-    private func findElement(location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) -> ChartItem? {
-        let relativeXPosition = location.x - geometry[proxy.plotAreaFrame].origin.x
+
+    private func findElement(location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy, in candidates: [ChartItem]) -> ChartItem? {
+        guard let plotFrame = proxy.plotFrame else { return nil }
+        let relativeXPosition = location.x - geometry[plotFrame].origin.x
         if let date = proxy.value(atX: relativeXPosition) as Date? {
             // Find the closest date element.
             var minDistance: TimeInterval = .infinity
             var nearestItem: ChartItem? = nil
-            for item in items {
-                let nthSalesDataDistance = item.date.distance(to: date)
-                if abs(nthSalesDataDistance) < minDistance {
-                    minDistance = abs(nthSalesDataDistance)
+            for item in candidates {
+                let distance = abs(item.date.distance(to: date))
+                if distance < minDistance {
+                    minDistance = distance
                     nearestItem = item
                 }
             }
-            if let nearestItem {
-                return nearestItem
-            }
+            return nearestItem
         }
         return nil
     }
-    
+
     private func calculateAverage() {
+        guard items.indices.contains(range.lowerBound),
+              items.indices.contains(range.upperBound) else {
+            value = nil
+            return
+        }
+
         if range.lowerBound == range.upperBound {
             value = items[range.lowerBound].value
             return
         }
-        
-        let predicate = HKQuery.predicateForSamples(
-            withStart: items[range.lowerBound].date,
-            end: items[range.upperBound].date
-        )
-        
-        let sampleType = HKQuantityType.quantityType(forIdentifier: health.type)!
-        let query = HKStatisticsQuery(
-            quantityType: sampleType,
-            quantitySamplePredicate: predicate,
-            options: [.discreteAverage]) { query, statistics, error in
-                
-                if let s = statistics {
-                    let q = s.averageQuantity()
-                    value = q?.doubleValue(for: health.sampleUnit)
-                    if value != nil &&
-                        health.sampleUnit == HKUnit.percent() {
-                        value = value! * 100
-                    }
-                } else {
-                    value = nil
-                }
-            }
-        healthStore!.execute(query)
-    }
-    
-    private func executeQuery() {
-        let calendar = Calendar.current
-        let startDate = DateComponents(year: startYear, month: 1, day: 1, hour: 0, minute: 0, second: 0)
-        let endDate = calendar.dateComponents(in: TimeZone.current, from: Date())
-       
-        let predicate = HKQuery.predicateForSamples(
-            withStart: calendar.date(from: startDate),
-            end: calendar.date(from: endDate)
-        )
-        
-        let sampleType = HKQuantityType.quantityType(forIdentifier: health.type)!
-        let query = HKStatisticsCollectionQuery(
-            quantityType: sampleType,
-            quantitySamplePredicate: predicate,
-            options: [.discreteAverage],
-            anchorDate: calendar.date(from: startDate)!,
-            intervalComponents: DateComponents(month: 1))
-        
-        query.initialResultsHandler = {
-            query, collection, error in
-            
-            items.removeAll()
-            
-            collection?.enumerateStatistics(
-                from: calendar.date(from: startDate)!,
-                to: calendar.date(from: endDate)!
-            ) { statistics, stop in
-                
-                let q = statistics.averageQuantity()
-                let value = q?.doubleValue(for: health.sampleUnit)
-                
-                if let value {
-                    
-                    let span = statistics.endDate.timeIntervalSince(statistics.startDate)
-                    let date = statistics.startDate.addingTimeInterval(span / 2)
-                    
-                    items.append(ChartItem(
-                        value: health.sampleUnit == HKUnit.percent() ? value * 100 : value,
-                        date: date,
-                        startDate: statistics.startDate,
-                        endDate: statistics.endDate
-                    ))
-                }
-            }
-            
-            isEmpty = items.isEmpty
-            isLoading = false
-            
-            if (!isEmpty) {
-                let max = items.count-1
-                range = 0...max
-                inRange = 0...max
-                calculateAverage()
-            }
-            
+
+        // 選択期間の正確な平均はHealthKitに問い合わせる(単一の集計クエリなので軽い)
+        let start = items[range.lowerBound].startDate
+        let end = items[range.upperBound].endDate
+
+        Task {
+            let average = await HealthStatsService.shared.discreteAverage(for: health, start: start, end: end)
+            value = average.map { $0 * health.displayMultiplier }
         }
-        healthStore!.execute(query)
+    }
+
+    private func load() async {
+        isLoading = true
+        isCompleted = false
+        selectedItem = nil
+
+        let stats = await HealthStatsService.shared.monthlyStats(for: health, startYear: startYear)
+
+        items = stats.compactMap { stat in
+            guard let average = stat.average else { return nil }
+            return ChartItem(
+                value: average * health.displayMultiplier,
+                date: stat.midDate,
+                startDate: stat.startDate,
+                endDate: stat.endDate)
+        }
+
+        isEmpty = items.isEmpty
+        isLoading = false
+        isCompleted = true
+
+        if !items.isEmpty {
+            let max = items.count - 1
+            range = 0...max
+            inRange = 0...max
+            calculateAverage()
+        } else {
+            value = nil
+        }
     }
 }
 
 struct LineChartView_Previews: PreviewProvider {
     static var previews: some View {
-        LineChartView(health: HealthItem(type: .bodyMass,
-                                         chart: .line,
-                                         image: "figure.arms.open",
-                                         title: "体重",
-                                         color: .purple,
-                                         sampleValueTitle: "平均",
-                                         sampleUnitText: "kg",
-                                         sampleValueFormat: "%.2f",
-                                         sampleUnit: HKUnit.gramUnit(with: .kilo)))
+        LineChartView(health: Health.shared.items.first(where: { $0.type == .bodyMass })!)
     }
 }

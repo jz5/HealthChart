@@ -23,7 +23,21 @@
 		42D84E5E299F607C00153011 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42D84E5D299F607C00153011 /* ContentView.swift */; };
 		42D84E60299F607D00153011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 42D84E5F299F607D00153011 /* Assets.xcassets */; };
 		42D84E63299F607D00153011 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 42D84E62299F607D00153011 /* Preview Assets.xcassets */; };
+		A20000000000000000000001 /* MonthlyStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* MonthlyStat.swift */; };
+		A20000000000000000000002 /* StatsCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* StatsCache.swift */; };
+		A20000000000000000000003 /* HealthStatsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* HealthStatsService.swift */; };
+		B20000000000000000000001 /* HealthChartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* HealthChartTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B90000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 42D84E50299F607C00153011 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 42D84E57299F607C00153011;
+			remoteInfo = HealthChart;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		4251563129AA544300627B25 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
@@ -44,6 +58,11 @@
 		42D84E5F299F607D00153011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		42D84E62299F607D00153011 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		42D84E69299F655B00153011 /* HealthChart.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HealthChart.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000001 /* MonthlyStat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyStat.swift; sourceTree = "<group>"; };
+		A10000000000000000000002 /* StatsCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsCache.swift; sourceTree = "<group>"; };
+		A10000000000000000000003 /* HealthStatsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthStatsService.swift; sourceTree = "<group>"; };
+		B00000000000000000000001 /* HealthChartTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HealthChartTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000001 /* HealthChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthChartTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +74,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B70000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -62,6 +88,7 @@
 			isa = PBXGroup;
 			children = (
 				42D84E5A299F607C00153011 /* HealthChart */,
+				B30000000000000000000001 /* HealthChartTests */,
 				42D84E59299F607C00153011 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -70,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				42D84E58299F607C00153011 /* HealthChart.app */,
+				B00000000000000000000001 /* HealthChartTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -92,10 +120,21 @@
 				42C7439029A53B9C00B1893C /* SampleView.swift */,
 				42D84E5F299F607D00153011 /* Assets.xcassets */,
 				4264A8D929A77CC600AB09E6 /* Health.swift */,
+				A10000000000000000000001 /* MonthlyStat.swift */,
+				A10000000000000000000002 /* StatsCache.swift */,
+				A10000000000000000000003 /* HealthStatsService.swift */,
 				4251563129AA544300627B25 /* Color.swift */,
 				42D84E61299F607D00153011 /* Preview Content */,
 			);
 			path = HealthChart;
+			sourceTree = "<group>";
+		};
+		B30000000000000000000001 /* HealthChartTests */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* HealthChartTests.swift */,
+			);
+			path = HealthChartTests;
 			sourceTree = "<group>";
 		};
 		42D84E61299F607D00153011 /* Preview Content */ = {
@@ -129,6 +168,23 @@
 			productReference = 42D84E58299F607C00153011 /* HealthChart.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B40000000000000000000001 /* HealthChartTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B50000000000000000000001 /* Build configuration list for PBXNativeTarget "HealthChartTests" */;
+			buildPhases = (
+				B60000000000000000000001 /* Sources */,
+				B70000000000000000000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B80000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = HealthChartTests;
+			productName = HealthChartTests;
+			productReference = B00000000000000000000001 /* HealthChartTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -141,6 +197,10 @@
 				TargetAttributes = {
 					42D84E57299F607C00153011 = {
 						CreatedOnToolsVersion = 14.2;
+					};
+					B40000000000000000000001 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 42D84E57299F607C00153011;
 					};
 				};
 			};
@@ -161,6 +221,7 @@
 			projectRoot = "";
 			targets = (
 				42D84E57299F607C00153011 /* HealthChart */,
+				B40000000000000000000001 /* HealthChartTests */,
 			);
 		};
 /* End PBXProject section */
@@ -195,10 +256,29 @@
 				42C5C9F729B6C27800DB7A3B /* RangeChartView.swift in Sources */,
 				4264A8D329A7169300AB09E6 /* LayoutView.swift in Sources */,
 				4251563229AA544300627B25 /* Color.swift in Sources */,
+				A20000000000000000000001 /* MonthlyStat.swift in Sources */,
+				A20000000000000000000002 /* StatsCache.swift in Sources */,
+				A20000000000000000000003 /* HealthStatsService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B60000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B20000000000000000000001 /* HealthChartTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B80000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 42D84E57299F607C00153011 /* HealthChart */;
+			targetProxy = B90000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		42D84E64299F607D00153011 /* Debug */ = {
@@ -251,7 +331,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -305,7 +385,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -397,6 +477,42 @@
 			};
 			name = Release;
 		};
+		BA000000000000000000000D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2JDG8GM7G3;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jp.pronama.healthcarechart-tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HealthChart.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HealthChart";
+			};
+			name = Debug;
+		};
+		BA000000000000000000000E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2JDG8GM7G3;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jp.pronama.healthcarechart-tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HealthChart.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HealthChart";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -418,12 +534,21 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		B50000000000000000000001 /* Build configuration list for PBXNativeTarget "HealthChartTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BA000000000000000000000D /* Debug */,
+				BA000000000000000000000E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		42C7438B29A2F1D400B1893C /* XCRemoteSwiftPackageReference "swiftui-sliders" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "git@github.com:spacenation/swiftui-sliders.git";
+			repositoryURL = "https://github.com/spacenation/swiftui-sliders.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.0.0;

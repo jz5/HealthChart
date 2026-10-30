@@ -12,13 +12,8 @@ import HealthKit
 struct ContentView: View {
 
     let isHealthAvailable = HKHealthStore.isHealthDataAvailable()
-    let healthStore: HKHealthStore? = HKHealthStore.isHealthDataAvailable() ? HKHealthStore() : nil
 
-    @ObservedObject var health = Health()
-    @State private var showAlert = false
-
-    init() {
-    }
+    @ObservedObject var health = Health.shared
 
     var body: some View {
         if !isHealthAvailable {
@@ -28,29 +23,29 @@ struct ContentView: View {
 
             NavigationStack {
                 List {
-                    ForEach(health.items.filter{ $0.chart != .hidden }) { item in
-
-                        NavigationLink {
-                            chartView(item: item)
-                            
-                        } label: {
-                            HStack {
-                                Image(systemName: item.image)
-                                    .foregroundColor(item.color)
-                                Text(item.title)
-                                    .foregroundColor(item.color)
-                                    .fontWeight(.semibold)
+                    ForEach(HealthCategory.allCases) { category in
+                        let items = health.items.filter { $0.category == category && $0.chart != .hidden }
+                        if !items.isEmpty {
+                            Section(category.title) {
+                                ForEach(items) { item in
+                                    NavigationLink {
+                                        chartView(item: item)
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: item.image)
+                                                .foregroundColor(item.color)
+                                            Text(item.title)
+                                                .foregroundColor(item.color)
+                                                .fontWeight(.semibold)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-//                    Section {
-//                        NavigationLink("test") {
-//                            SampleView()
-//                        }
-//                    }
                 }
-                //.navigationBarTitleDisplayMode(.title)
-                //.navigationTitle("ヘルスケアデータ")
+                .navigationTitle("ヘルスチャート")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         NavigationLink {
@@ -64,39 +59,22 @@ struct ContentView: View {
                     }
                 }
             }
-
-
-        }
-    }
-    
-    private func chartView(item: HealthItem) -> AnyView {
-        if item.chart == .bar {
-            return AnyView(BarChartView(health: item))
-        } else if item.chart == .line {
-            return AnyView(LineChartView(health: item))
-        } else if item.chart == .bloodPress {
-            return AnyView(BloodPressureChartView(health: item))
-        } else {
-                return AnyView(RangeChartView(health: item))
         }
     }
 
-    private func requestAuthorization() {
-
-        let types = health.items.map { HKObjectType.quantityType(forIdentifier: $0.type)! }
-        let notDetermined = types.contains(where: {
-            healthStore?.authorizationStatus(for: $0) == .notDetermined
-        })
-        if (notDetermined) {
-            healthStore!.requestAuthorization(toShare: nil, read: Set(types)) { (success, error) in
-                // Do nothing
-            }
-        } else {
-            showAlert = true
+    @ViewBuilder
+    private func chartView(item: HealthItem) -> some View {
+        switch item.chart {
+        case .bar:
+            BarChartView(health: item)
+        case .line:
+            LineChartView(health: item)
+        case .bloodPress:
+            BloodPressureChartView(health: item)
+        default:
+            RangeChartView(health: item)
         }
-
     }
-
 }
 
 struct ContentView_Previews: PreviewProvider {
