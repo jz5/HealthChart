@@ -23,6 +23,19 @@ struct ContentView: View {
 
             NavigationStack {
                 List {
+                    Section("分析") {
+                        NavigationLink {
+                            ComparisonChartView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.triangle.branch")
+                                    .foregroundColor(.teal)
+                                Text("2項目の比較")
+                                    .foregroundColor(.teal)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                    }
                     ForEach(HealthCategory.allCases) { category in
                         let items = health.items.filter { $0.category == category && $0.chart != .hidden }
                         if !items.isEmpty {

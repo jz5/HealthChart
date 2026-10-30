@@ -49,6 +49,7 @@ struct BloodPressureChartView: View {
 
     @AppStorage("startYear") private var startYear = 2014
     @AppStorage("showMinMax") var showMinMax = false
+    @AppStorage("showBPGuide") var showBPGuide = true
 
     @State private var selectedSystolicItem: ChartItem? = nil
     @State private var selectedDiastolicItem: ChartItem? = nil
@@ -111,10 +112,10 @@ struct BloodPressureChartView: View {
                             }
                         }).disabled(!isCompleted || isEmpty)
 
-//                    Toggle("平均", isOn: $showAverage)
+                    Toggle("家庭血圧の基準値(135/85)", isOn: $showBPGuide)
 
                 }
-                    .frame(height: 150)
+                    .frame(height: 200)
                     .scrollContentBackground(.hidden)
 
 
@@ -253,19 +254,25 @@ struct BloodPressureChartView: View {
                         .symbolSize(symbolSize)
                 }
             }
-            /*
-                if showAverage,
-                    let value {
-                    RuleMark(y: .value("平均", value))
-                        .lineStyle(StrokeStyle(lineWidth: 1))
-                        .foregroundStyle(health.color)
-                        .annotation(position: .trailing, alignment: .leading) {
-                        Text(String(format: health.sampleValueFormat, value))
-                            .font(.caption)
-                            .foregroundColor(health.color) }
-
-                }
-            */
+            // 家庭血圧の高血圧基準(日本高血圧学会: 135/85 mmHg)
+            if showBPGuide {
+                RuleMark(y: .value("mmHg", 135))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .foregroundStyle(.red.opacity(0.6))
+                    .annotation(position: .trailing, alignment: .leading) {
+                        Text("135")
+                            .font(.caption2)
+                            .foregroundColor(.red.opacity(0.8))
+                    }
+                RuleMark(y: .value("mmHg", 85))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .foregroundStyle(.red.opacity(0.6))
+                    .annotation(position: .trailing, alignment: .leading) {
+                        Text("85")
+                            .font(.caption2)
+                            .foregroundColor(.red.opacity(0.8))
+                    }
+            }
 
         }
             .chartXAxis {

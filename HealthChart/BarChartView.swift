@@ -42,6 +42,10 @@ struct BarChartView: View {
     @AppStorage("startYear") private var startYear = 2014
     @AppStorage("showMinMax") var showMinMax = false
     @AppStorage("showAverage") var showAverage = false
+    @AppStorage("showMovingAverage") var showMovingAverage = false
+    @AppStorage("showTrend") var showTrend = false
+    @AppStorage("showStats") var showStats = false
+    @State private var goal: Double? = nil
 
     @State private var selectedItem: ChartItem? = nil
 
@@ -102,6 +106,9 @@ struct BarChartView: View {
                             .fontWeight(.semibold)
                     }
                 }
+                AnalysisSummaryView(points: rangePoints,
+                                    unitText: health.sampleUnitText,
+                                    valueFormat: health.sampleValueFormat)
             }
 
 
@@ -159,6 +166,14 @@ struct BarChartView: View {
                             }
 
                         }
+                        AnalysisMarks(points: filteredItems.map { DatedValue(date: $0.date, value: $0.value) },
+                                      color: health.color,
+                                      unitText: health.sampleUnitText,
+                                      valueFormat: health.sampleValueFormat,
+                                      showMovingAverage: showMovingAverage,
+                                      showTrend: showTrend,
+                                      showStats: showStats,
+                                      goal: goal)
 
                     }
                         .chartXAxis {
@@ -226,7 +241,7 @@ struct BarChartView: View {
 
                                     let lineX = startPositionX1 + geo[plotFrame].origin.x
                                     let lineHeight = geo[plotFrame].maxY
-                                    let boxWidth: CGFloat = 120
+                                    let boxWidth: CGFloat = 140
                                     let boxOffset = max(0, min(geo.size.width - boxWidth, lineX - boxWidth / 2))
 
                                     Rectangle()
@@ -243,6 +258,15 @@ struct BarChartView: View {
                                             .font(.subheadline)
                                             .foregroundColor(.gray)
                                             .fontWeight(.semibold)
+                                        if let previous = ChartAnalysis.valueOneYearBefore(
+                                                of: selectedItem.date,
+                                                in: items.map { DatedValue(date: $0.date, value: $0.value) }),
+                                           let change = ChartAnalysis.yearOverYearChange(
+                                                current: selectedItem.value, previous: previous) {
+                                            Text(String(format: "前年比 %+.1f%%", change))
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
                                     }
                                         .frame(width: boxWidth, alignment: .center)
                                         .background {
@@ -274,9 +298,10 @@ struct BarChartView: View {
 
                     Toggle("平均", isOn: $showAverage)
                     Toggle("最大", isOn: $showMinMax)
+                    AnalysisOptionsView(goalKey: "goal." + health.type.rawValue, goal: $goal)
 
                 }
-                    .frame(height: 300)
+                    .frame(height: 480)
                     .scrollContentBackground(.hidden)
 
 
@@ -292,6 +317,15 @@ struct BarChartView: View {
                     await load()
                 }
             }
+    }
+
+    private var rangePoints: [DatedValue] {
+        guard items.indices.contains(range.lowerBound),
+              items.indices.contains(range.upperBound) else { return [] }
+        return items.filter {
+            $0.date >= items[range.lowerBound].date &&
+            $0.date <= items[range.upperBound].date
+        }.map { DatedValue(date: $0.date, value: $0.value) }
     }
 
     private func barWidth(_ width: Double) -> MarkDimension {

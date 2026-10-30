@@ -150,6 +150,96 @@ struct StatsCacheTests {
     }
 }
 
+// MARK: - ChartAnalysis
+
+struct ChartAnalysisTests {
+
+    private func points(_ values: [Double]) -> [DatedValue] {
+        let calendar = Calendar.current
+        let base = calendar.date(from: DateComponents(year: 2024, month: 1, day: 15))!
+        return values.enumerated().map { i, value in
+            DatedValue(date: calendar.date(byAdding: .month, value: i, to: base)!, value: value)
+        }
+    }
+
+    @Test func 移動平均は末尾ウィンドウで計算される() {
+        let ma = ChartAnalysis.movingAverage(points([1, 2, 3, 4, 5]), window: 3)
+        #expect(ma.map { $0.value } == [2, 3, 4])
+    }
+
+    @Test func 移動平均は点数不足なら空() {
+        #expect(ChartAnalysis.movingAverage(points([1, 2]), window: 3).isEmpty)
+    }
+
+    @Test func 回帰直線の傾き() {
+        let fit = ChartAnalysis.linearRegression(xs: [0, 1, 2, 3], ys: [10, 12, 14, 16])
+        #expect(fit != nil)
+        #expect(abs((fit?.slope ?? 0) - 2) < 1e-9)
+        #expect(abs((fit?.intercept ?? 0) - 10) < 1e-9)
+    }
+
+    @Test func トレンドは月あたりの傾きを返す() {
+        // 毎月+2ずつ増える系列
+        let trend = ChartAnalysis.trendLine(points([10, 12, 14, 16]))
+        #expect(trend != nil)
+        if let trend {
+            #expect(abs(trend.slopePerMonth - 2) < 0.1)
+            #expect(trend.start.value < trend.end.value)
+        }
+    }
+
+    @Test func 中央値とパーセンタイル() {
+        #expect(ChartAnalysis.median([1, 2, 3, 4, 5]) == 3)
+        #expect(ChartAnalysis.median([1, 2, 3, 4]) == 2.5)
+        #expect(ChartAnalysis.percentile([1, 2, 3, 4, 5], 0) == 1)
+        #expect(ChartAnalysis.percentile([1, 2, 3, 4, 5], 100) == 5)
+        #expect(ChartAnalysis.percentile([], 50) == nil)
+    }
+
+    @Test func 標準偏差() {
+        let sd = ChartAnalysis.standardDeviation([2, 4, 4, 4, 5, 5, 7, 9])
+        #expect(sd != nil)
+        #expect(abs((sd ?? 0) - 2.138) < 0.01) // 標本標準偏差
+        #expect(ChartAnalysis.standardDeviation([1]) == nil)
+    }
+
+    @Test func 相関係数() {
+        // 完全な正の相関
+        let r1 = ChartAnalysis.pearsonCorrelation(xs: [1, 2, 3, 4], ys: [2, 4, 6, 8])
+        #expect(abs((r1 ?? 0) - 1) < 1e-9)
+        // 完全な負の相関
+        let r2 = ChartAnalysis.pearsonCorrelation(xs: [1, 2, 3, 4], ys: [8, 6, 4, 2])
+        #expect(abs((r2 ?? 0) + 1) < 1e-9)
+        // 分散ゼロはnil
+        #expect(ChartAnalysis.pearsonCorrelation(xs: [1, 1, 1], ys: [1, 2, 3]) == nil)
+        // 3点未満はnil
+        #expect(ChartAnalysis.pearsonCorrelation(xs: [1, 2], ys: [1, 2]) == nil)
+    }
+
+    @Test func 相関ラベル() {
+        #expect(ChartAnalysis.correlationLabel(0.8) == "強い正の相関")
+        #expect(ChartAnalysis.correlationLabel(-0.5) == "中程度の負の相関")
+        #expect(ChartAnalysis.correlationLabel(0.3) == "弱い正の相関")
+        #expect(ChartAnalysis.correlationLabel(0.1) == "ほぼ相関なし")
+    }
+
+    @Test func 前年同月の値を見つける() {
+        let calendar = Calendar.current
+        let all = points(Array(1...24).map(Double.init)) // 2024/01〜2025/12
+        let target = calendar.date(from: DateComponents(year: 2025, month: 3, day: 10))!
+        // 2024/03 の値は 3
+        #expect(ChartAnalysis.valueOneYearBefore(of: target, in: all) == 3)
+        let early = calendar.date(from: DateComponents(year: 2024, month: 2, day: 10))!
+        #expect(ChartAnalysis.valueOneYearBefore(of: early, in: all) == nil)
+    }
+
+    @Test func 前年同月比() {
+        #expect(ChartAnalysis.yearOverYearChange(current: 110, previous: 100) == 10)
+        #expect(ChartAnalysis.yearOverYearChange(current: 90, previous: 100) == -10)
+        #expect(ChartAnalysis.yearOverYearChange(current: 1, previous: 0) == nil)
+    }
+}
+
 // MARK: - カタログ
 
 struct HealthCatalogTests {
