@@ -420,7 +420,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "ヘルスチャート";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "チャート作成のため読み取ります";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "書き込みは行いません";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "動作確認用のダミーデータを書き込むために使用します";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

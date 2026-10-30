@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HealthKit
 
 struct SettingsView: View {
     @AppStorage("startYear") private var startYear = 2014
@@ -15,6 +16,11 @@ struct SettingsView: View {
     @State private var cacheByteCount = 0
     @State private var showClearConfirm = false
     @State private var didClear = false
+
+    #if targetEnvironment(simulator)
+    @State private var isSeeding = false
+    @State private var seedResult: String?
+    #endif
 
     var body: some View {
         Form {
@@ -45,6 +51,32 @@ struct SettingsView: View {
                     LicensesView()
                 }
             }
+            #if targetEnvironment(simulator)
+            Section {
+                Button {
+                    Task { await seedDummyData() }
+                } label: {
+                    if isSeeding {
+                        HStack {
+                            ProgressView()
+                            Text("生成中…")
+                        }
+                    } else {
+                        Text("ダミーデータを生成(3年分)")
+                    }
+                }
+                .disabled(isSeeding)
+                if let seedResult {
+                    Text(seedResult)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            } header: {
+                Text("開発用(シミュレータのみ)")
+            } footer: {
+                Text("歩数・体重・心拍数・血圧などのダミーデータを3年分書き込み、キャッシュをクリアします。")
+            }
+            #endif
         }
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle("設定")
@@ -78,7 +110,81 @@ struct SettingsView: View {
         cacheMonthCount = summary.monthCount
         cacheByteCount = summary.byteCount
     }
+
+    #if targetEnvironment(simulator)
+    private func seedDummyData() async {
+        isSeeding = true
+        seedResult = nil
+        do {
+            let count = try await DummyDataSeeder.seed()
+            await HealthStatsService.shared.cache.clear()
+            await refreshCacheSummary()
+            seedResult = "\(count)件書き込みました"
+        } catch {
+            seedResult = "失敗: \(error.localizedDescription)"
+        }
+        isSeeding = false
+    }
+    #endif
 }
+
+#if targetEnvironment(simulator)
+/// シミュレータの動作確認用に、主要な項目のダミーデータを書き込む。
+/// 歩数は増加・体重は減少トレンドにして、2項目比較で負の相関が見えるようにしている。
+enum DummyDataSeeder {
+
+    static func seed() async throws -> Int {
+        let store = HKHealthStore()
+        let identifiers: [HKQuantityTypeIdentifier] = [
+            .stepCount, .distanceWalkingRunning, .activeEnergyBurned,
+            .bodyMass, .bodyFatPercentage,
+            .heartRate, .restingHeartRate,
+            .bloodPressureSystolic, .bloodPressureDiastolic,
+        ]
+        let types = Set(identifiers.compactMap { HKQuantityType.quantityType(forIdentifier: $0) })
+        try await store.requestAuthorization(toShare: types, read: [])
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let days = 365 * 3
+        let bpm = HKUnit.count().unitDivided(by: .minute())
+
+        var samples: [HKQuantitySample] = []
+        func add(_ id: HKQuantityTypeIdentifier, _ unit: HKUnit, _ value: Double, _ date: Date) {
+            guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return }
+            samples.append(HKQuantitySample(
+                type: type,
+                quantity: HKQuantity(unit: unit, doubleValue: value),
+                start: date, end: date))
+        }
+
+        for dayOffset in 0..<days {
+            guard let day = calendar.date(byAdding: .day, value: -dayOffset, to: today),
+                  let noon = calendar.date(byAdding: .hour, value: 12, to: day),
+                  let evening = calendar.date(byAdding: .hour, value: 18, to: day) else { continue }
+
+            let past = Double(dayOffset) / Double(days) // 0=今日、1=3年前
+
+            // 歩数は3年かけて増加、体重・体脂肪・血圧・安静時心拍は減少トレンド
+            let steps = max(500, 6000 + 3500 * (1 - past) + .random(in: -2500...2500))
+            add(.stepCount, .count(), steps.rounded(), noon)
+            add(.distanceWalkingRunning, .meterUnit(with: .kilo), steps * 0.00065, noon)
+            add(.activeEnergyBurned, .kilocalorie(), max(50, steps * 0.045 + .random(in: -40...40)), noon)
+            add(.bodyMass, .gramUnit(with: .kilo), 59 + 5 * past + .random(in: -0.6...0.6), noon)
+            add(.bodyFatPercentage, .percent(), 0.21 + 0.04 * past + .random(in: -0.008...0.008), noon)
+            add(.restingHeartRate, bpm, 57 + 6 * past + .random(in: -3...3), noon)
+            // 心拍数は安静時と運動時の2件(範囲チャート用)
+            add(.heartRate, bpm, 52 + .random(in: 0...8), noon)
+            add(.heartRate, bpm, 120 + .random(in: -15...25), evening)
+            add(.bloodPressureSystolic, .millimeterOfMercury(), (118 + 12 * past + .random(in: -8...8)).rounded(), noon)
+            add(.bloodPressureDiastolic, .millimeterOfMercury(), (76 + 7 * past + .random(in: -6...6)).rounded(), noon)
+        }
+
+        try await store.save(samples)
+        return samples.count
+    }
+}
+#endif
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
