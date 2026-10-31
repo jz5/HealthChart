@@ -39,6 +39,25 @@ struct MonthRangeSlider: View {
     }
 }
 
+/// チャート下の設定リスト。Form(内部スクロール)だと画面の中に
+/// もう1つスクロールができて操作しづらいため、高さ可変のカードにして
+/// 画面全体のスクロールに乗せる
+struct ChartSettingsCard<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            content
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
+        .padding()
+    }
+}
+
 /// UIActivityViewControllerのSwiftUIラッパー(グラフ画像の共有に使う)
 struct ActivityShareSheet: UIViewControllerRepresentable {
     let items: [Any]
@@ -64,8 +83,11 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     @Binding var progress: Double?
     /// 共有画像に入れるタイトル(項目名)。nilなら共有ボタンを出さない
     var shareTitle: String?
-    /// 共有画像に入れるサブタイトル(期間など)
+    /// 共有画像に入れるサブタイトル(期間・単位など)
     var shareSubtitle: String?
+    /// 指定があれば共有ボタンがメニューになり、実数値(false)と相対値(true)の
+    /// どちらで画像を作るかを選べる(折れ線チャート用)
+    var shareChartBuilder: ((_ relative: Bool) -> AnyView)?
 
     @State private var shareImage: ChartShareImage?
 
@@ -86,6 +108,7 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
          progress: Binding<Double?> = .constant(nil),
          shareTitle: String? = nil,
          shareSubtitle: String? = nil,
+         shareChartBuilder: ((_ relative: Bool) -> AnyView)? = nil,
          @ViewBuilder header: () -> Header,
          @ViewBuilder chart: () -> Chart,
          @ViewBuilder footer: () -> Footer) {
@@ -100,6 +123,7 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
         self._progress = progress
         self.shareTitle = shareTitle
         self.shareSubtitle = shareSubtitle
+        self.shareChartBuilder = shareChartBuilder
     }
     
     var body: some View {
@@ -173,19 +197,37 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     private var shareToolbarItem: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             if shareTitle != nil {
-                Button {
-                    renderShareImage()
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
+                if let shareChartBuilder {
+                    Menu {
+                        Button {
+                            renderShareImage(chartView: shareChartBuilder(false))
+                        } label: {
+                            Label("実数値のまま共有", systemImage: "number")
+                        }
+                        Button {
+                            renderShareImage(chartView: shareChartBuilder(true),
+                                             note: "期間最初の値を基準にした相対表示")
+                        } label: {
+                            Label("相対値で共有（実数値を出さない）", systemImage: "eye.slash")
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                } else {
+                    Button {
+                        renderShareImage(chartView: AnyView(chart))
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
                 }
             }
         }
     }
 
-    /// 現在のチャートを画像にして共有シートを開く。
-    /// ヘッダーの数値は含めず、タイトル・期間とグラフだけを描く
+    /// チャートを画像にして共有シートを開く。
+    /// ヘッダーの数値は含めず、タイトル・期間・単位とグラフだけを描く
     @MainActor
-    private func renderShareImage() {
+    private func renderShareImage(chartView: AnyView, note: String? = nil) {
         let content = VStack(alignment: .leading, spacing: 8) {
             if let shareTitle {
                 Text(shareTitle)
@@ -196,7 +238,12 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
                     .font(.caption)
                     .foregroundColor(.gray)
             }
-            chart
+            if let note {
+                Text(note)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            chartView
                 .frame(width: 760, height: 400)
         }
         .padding(24)

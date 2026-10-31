@@ -62,7 +62,7 @@ struct SettingsView: View {
                             Text("生成中…")
                         }
                     } else {
-                        Text("ダミーデータを生成(3年分)")
+                        Text("ダミーデータを生成（3年分）")
                     }
                 }
                 .disabled(isSeeding)
@@ -72,7 +72,7 @@ struct SettingsView: View {
                         .foregroundColor(.gray)
                 }
             } header: {
-                Text("開発用(シミュレータのみ)")
+                Text("開発用（シミュレータのみ）")
             } footer: {
                 Text("歩数・体重・心拍数・血圧などのダミーデータを3年分書き込み、キャッシュをクリアします。")
             }
@@ -102,7 +102,7 @@ struct SettingsView: View {
             return "なし"
         }
         let size = ByteCountFormatter.string(fromByteCount: Int64(cacheByteCount), countStyle: .file)
-        return "\(cacheMonthCount)ヶ月分(\(size))"
+        return "\(cacheMonthCount)ヶ月分（\(size)）"
     }
 
     private func refreshCacheSummary() async {

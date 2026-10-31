@@ -284,9 +284,9 @@ struct AnalysisOptionsView: View {
     @FocusState private var goalFocused: Bool
 
     var body: some View {
-        Toggle("移動平均(3/12区間)", isOn: $showMovingAverage)
+        Toggle("移動平均（3/12区間）", isOn: $showMovingAverage)
         Toggle("トレンド", isOn: $showTrend)
-        Toggle("統計(中央値・四分位)", isOn: $showStats)
+        Toggle("統計（中央値・四分位）", isOn: $showStats)
         HStack {
             Text("目標")
             TextField("なし", text: $goalText)

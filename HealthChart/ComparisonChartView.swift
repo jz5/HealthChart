@@ -19,6 +19,7 @@ struct ComparisonChartView: View {
     @State private var pointsA: [DatedValue] = []
     @State private var pointsB: [DatedValue] = []
     @State private var isLoading = true
+    @State private var loadProgress: Double?
 
     /// 2項目いずれかにデータのある月(昇順)。期間スライダーの目盛りになる
     @State private var allMonths: [Date] = []
@@ -69,7 +70,17 @@ struct ComparisonChartView: View {
                 if isLoading {
                     HStack {
                         Spacer()
-                        ProgressView()
+                        VStack(spacing: 12) {
+                            if let loadProgress {
+                                ProgressView(value: loadProgress)
+                                    .frame(width: 200)
+                                Text("全期間のデータを集計中… \(Int(loadProgress * 100))%")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            } else {
+                                ProgressView()
+                            }
+                        }
                         Spacer()
                     }
                 } else if pointsA.isEmpty || pointsB.isEmpty {
@@ -90,7 +101,7 @@ struct ComparisonChartView: View {
                     }
                 }
             } footer: {
-                Text("月ごとの値(累積項目は1日の平均)を比較します。相関は関連の強さを示すもので、因果関係を意味しません。")
+                Text("月ごとの値（累積項目は1日の平均）を比較します。相関は関連の強さを示すもので、因果関係を意味しません。")
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -145,7 +156,7 @@ struct ComparisonChartView: View {
                     Image(systemName: "chart.dots.scatter")
                         .font(.caption)
                         .foregroundColor(.gray)
-                    Text("横: \(itemA.title)(\(itemA.sampleUnitText)) ・ 縦: \(itemB.title)(\(itemB.sampleUnitText))")
+                    Text("横: \(itemA.title)（\(itemA.sampleUnitText)） ・ 縦: \(itemB.title)（\(itemB.sampleUnitText)）")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
@@ -272,9 +283,15 @@ struct ComparisonChartView: View {
     private func load() async {
         guard let itemA, let itemB else { return }
         isLoading = true
+        loadProgress = nil
 
-        pointsA = await loadPoints(for: itemA)
-        pointsB = await loadPoints(for: itemB)
+        // 項目1で前半、項目2で後半の進捗にする
+        pointsA = await loadPoints(for: itemA) { p in
+            Task { @MainActor in loadProgress = p * 0.5 }
+        }
+        pointsB = await loadPoints(for: itemB) { p in
+            Task { @MainActor in loadProgress = 0.5 + p * 0.5 }
+        }
 
         // 期間スライダーの目盛りと選択範囲を全期間にリセットする
         allMonths = Set((pointsA + pointsB).map { $0.date }).sorted()
@@ -285,8 +302,9 @@ struct ComparisonChartView: View {
         isLoading = false
     }
 
-    private func loadPoints(for item: HealthItem) async -> [DatedValue] {
-        let stats = await HealthStatsService.shared.monthlyStats(for: item, startYear: startYear)
+    private func loadPoints(for item: HealthItem,
+                            progress: (@Sendable (Double) -> Void)? = nil) async -> [DatedValue] {
+        let stats = await HealthStatsService.shared.monthlyStats(for: item, startYear: startYear, progress: progress)
         return stats.compactMap { stat in
             let value: Double?
             if item.chart == .bar {

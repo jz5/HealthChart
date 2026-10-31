@@ -55,117 +55,23 @@ struct LineChartView: View {
     /// 相対表示: 実数値の代わりに期間最初の値からの差分で描く(SNS共有向け)
     @AppStorage("relativeDisplay") private var relativeDisplay = false
 
-    /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
-    private var periodText: String? {
-        guard items.indices.contains(range.lowerBound),
-              items.indices.contains(range.upperBound) else { return nil }
-        let start = items[range.lowerBound].date
-        let end = items[range.upperBound].date
-        if range.lowerBound == range.upperBound {
-            return yearMonthDateFormatter.string(from: start)
-        }
-        return yearMonthDateFormatter.string(from: start) + "〜" + yearMonthDateFormatter.string(from: end)
-    }
-
-    /// 月次アイテムを年ごとの平均に畳む
-    private func yearlyItems(_ items: [ChartItem]) -> [ChartItem] {
-        let calendar = Calendar.current
-        var groups: [Int: (sum: Double, count: Int, start: Date, end: Date)] = [:]
-        for item in items {
-            let year = calendar.component(.year, from: item.date)
-            var g = groups[year] ?? (0, 0, item.startDate, item.endDate)
-            g.sum += item.value
-            g.count += 1
-            g.start = Swift.min(g.start, item.startDate)
-            g.end = Swift.max(g.end, item.endDate)
-            groups[year] = g
-        }
-        return groups.keys.sorted().compactMap { year in
-            guard let g = groups[year], g.count > 0,
-                  let mid = calendar.date(from: DateComponents(year: year, month: 7, day: 1)) else { return nil }
-            return ChartItem(value: g.sum / Double(g.count), date: mid,
-                             startDate: g.start, endDate: g.end)
-        }
-    }
-
-    init(health: HealthItem) {
-        self.health = health
-
-        _range = State(initialValue: 0...0)
-        _inRange = State(initialValue: 0...0)
-
-        yearMonthDateFormatter.locale = Locale(identifier: "ja_JP")
-        yearMonthDateFormatter.setLocalizedDateFormatFromTemplate("yMMM")
-
-        monthDateFormatter.locale = Locale(identifier: "ja_JP")
-        monthDateFormatter.setLocalizedDateFormatFromTemplate("MMM")
-
-        yearDateFormatter.locale = Locale(identifier: "ja_JP")
-        yearDateFormatter.setLocalizedDateFormatFromTemplate("y")
-    }
-
-    var body: some View {
-        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress,
-                   shareTitle: health.title, shareSubtitle: periodText, header: {
-            Group {
-                Text(health.sampleValueTitle)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .fontWeight(.semibold)
-                    .padding(.top)
-
-                HStack(alignment: .bottom) {
-                    if value == nil {
-                        Text("データなし")
-                            .fontWeight(.medium)
-                            .font(.system(.largeTitle, design: .rounded))
-
-                    } else {
-                        Text(formatValue(value ?? 0, health.sampleValueFormat))
-                            .fontWeight(.medium)
-                            .font(.system(.largeTitle, design: .rounded))
-                        +
-                        Text(health.sampleUnitText)
-                            .foregroundColor(.gray)
-                            .fontWeight(.semibold)
-                            .font(.system(.subheadline, design: .rounded))
-                    }
-                }
-                if !items.isEmpty {
-                    if range.lowerBound == range.upperBound {
-                        Text(yearMonthDateFormatter.string(from: items[range.lowerBound].date))
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .fontWeight(.semibold)
-                    } else {
-                        Text(
-                            yearMonthDateFormatter.string(from: items[range.lowerBound].date) + "〜" +
-                            yearMonthDateFormatter.string(from: items[range.upperBound].date))
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .fontWeight(.semibold)
-                    }
-                }
-                AnalysisSummaryView(points: rangePoints,
-                                    unitText: health.sampleUnitText,
-                                    valueFormat: health.sampleValueFormat)
-            }
-
-
-        }, chart: {
+    /// チャート本体。relative=trueなら期間最初の値を基準(0)にした差分で描く
+    /// (共有メニューから表示モードと独立に実数値/相対値を描き分けるため関数化)
+    @ViewBuilder
+    private func chartContent(relative: Bool) -> some View {
             let monthlyItems = items.filter {
                 $0.date >= items[range.lowerBound].date &&
                 $0.date <= items[range.upperBound].date
             }
             let unitItems = chartUnit == .year ? yearlyItems(monthlyItems) : monthlyItems
             // 相対表示: 期間最初の値を基準(0)にした差分へ変換する(共有時に実数値を出さないため)
-            let base = relativeDisplay ? (unitItems.first?.value ?? 0) : 0
-            let filteredItems = relativeDisplay ? unitItems.map {
+            let base = relative ? (unitItems.first?.value ?? 0) : 0
+            let filteredItems = relative ? unitItems.map {
                 ChartItem(value: $0.value - base, date: $0.date, startDate: $0.startDate, endDate: $0.endDate)
             } : unitItems
 
             Chart {
-                if relativeDisplay {
+                if relative {
                     RuleMark(y: .value("基準", 0))
                         .lineStyle(StrokeStyle(lineWidth: 1))
                         .foregroundStyle(.green.opacity(0.7))
@@ -313,7 +219,7 @@ struct LineChartView: View {
 
                             VStack(alignment: .center) {
 
-                                Text((relativeDisplay && selectedItem.value > 0 ? "+" : "") +
+                                Text((relative && selectedItem.value > 0 ? "+" : "") +
                                      formatValue(selectedItem.value, health.sampleValueFormat))
                                     .fontWeight(.medium)
                                     .font(.system(.largeTitle, design: .rounded))
@@ -321,7 +227,7 @@ struct LineChartView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                                     .fontWeight(.semibold)
-                                if !relativeDisplay,
+                                if !relative,
                                    let previous = ChartAnalysis.valueOneYearBefore(
                                         of: selectedItem.date,
                                         in: (chartUnit == .year ? yearlyItems(items) : items).map { DatedValue(date: $0.date, value: $0.value) }),
@@ -348,8 +254,122 @@ struct LineChartView: View {
                 }
             }
 
+    }
+
+    /// 共有画像のサブタイトル（期間と単位）
+    private var shareSubtitleText: String? {
+        var parts: [String] = []
+        if let periodText {
+            parts.append(periodText)
+        }
+        if !health.sampleUnitText.isEmpty {
+            parts.append("単位: " + health.sampleUnitText)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
+    }
+
+    /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
+    private var periodText: String? {
+        guard items.indices.contains(range.lowerBound),
+              items.indices.contains(range.upperBound) else { return nil }
+        let start = items[range.lowerBound].date
+        let end = items[range.upperBound].date
+        if range.lowerBound == range.upperBound {
+            return yearMonthDateFormatter.string(from: start)
+        }
+        return yearMonthDateFormatter.string(from: start) + "〜" + yearMonthDateFormatter.string(from: end)
+    }
+
+    /// 月次アイテムを年ごとの平均に畳む
+    private func yearlyItems(_ items: [ChartItem]) -> [ChartItem] {
+        let calendar = Calendar.current
+        var groups: [Int: (sum: Double, count: Int, start: Date, end: Date)] = [:]
+        for item in items {
+            let year = calendar.component(.year, from: item.date)
+            var g = groups[year] ?? (0, 0, item.startDate, item.endDate)
+            g.sum += item.value
+            g.count += 1
+            g.start = Swift.min(g.start, item.startDate)
+            g.end = Swift.max(g.end, item.endDate)
+            groups[year] = g
+        }
+        return groups.keys.sorted().compactMap { year in
+            guard let g = groups[year], g.count > 0,
+                  let mid = calendar.date(from: DateComponents(year: year, month: 7, day: 1)) else { return nil }
+            return ChartItem(value: g.sum / Double(g.count), date: mid,
+                             startDate: g.start, endDate: g.end)
+        }
+    }
+
+    init(health: HealthItem) {
+        self.health = health
+
+        _range = State(initialValue: 0...0)
+        _inRange = State(initialValue: 0...0)
+
+        yearMonthDateFormatter.locale = Locale(identifier: "ja_JP")
+        yearMonthDateFormatter.setLocalizedDateFormatFromTemplate("yMMM")
+
+        monthDateFormatter.locale = Locale(identifier: "ja_JP")
+        monthDateFormatter.setLocalizedDateFormatFromTemplate("MMM")
+
+        yearDateFormatter.locale = Locale(identifier: "ja_JP")
+        yearDateFormatter.setLocalizedDateFormatFromTemplate("y")
+    }
+
+    var body: some View {
+        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress,
+                   shareTitle: health.title, shareSubtitle: shareSubtitleText,
+                   shareChartBuilder: { relative in AnyView(chartContent(relative: relative)) }, header: {
+            Group {
+                Text(health.sampleValueTitle)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .fontWeight(.semibold)
+                    .padding(.top)
+
+                HStack(alignment: .bottom) {
+                    if value == nil {
+                        Text("データなし")
+                            .fontWeight(.medium)
+                            .font(.system(.largeTitle, design: .rounded))
+
+                    } else {
+                        Text(formatValue(value ?? 0, health.sampleValueFormat))
+                            .fontWeight(.medium)
+                            .font(.system(.largeTitle, design: .rounded))
+                        +
+                        Text(health.sampleUnitText)
+                            .foregroundColor(.gray)
+                            .fontWeight(.semibold)
+                            .font(.system(.subheadline, design: .rounded))
+                    }
+                }
+                if !items.isEmpty {
+                    if range.lowerBound == range.upperBound {
+                        Text(yearMonthDateFormatter.string(from: items[range.lowerBound].date))
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .fontWeight(.semibold)
+                    } else {
+                        Text(
+                            yearMonthDateFormatter.string(from: items[range.lowerBound].date) + "〜" +
+                            yearMonthDateFormatter.string(from: items[range.upperBound].date))
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .fontWeight(.semibold)
+                    }
+                }
+                AnalysisSummaryView(points: rangePoints,
+                                    unitText: health.sampleUnitText,
+                                    valueFormat: health.sampleValueFormat)
+            }
+
+
+        }, chart: {
+            chartContent(relative: relativeDisplay)
         }, footer: {
-            Form {
+            ChartSettingsCard {
                 MonthRangeSlider(range: $range, inRange: inRange,
                                  disabled: !isCompleted || isEmpty,
                                  periodText: periodText,
@@ -362,15 +382,13 @@ struct LineChartView: View {
                 })
 
                 ChartUnitPicker(chartUnitRaw: $chartUnitRaw)
-                Toggle("相対表示(期間最初の値を基準)", isOn: $relativeDisplay)
+                Toggle("相対表示（期間最初の値を基準）", isOn: $relativeDisplay)
                 Toggle("平均", isOn: $showAverage)
                 Toggle("最小・最大", isOn: $showMinMax)
                 Toggle("シンボル", isOn: $showSymbols)
                 AnalysisOptionsView(goalKey: "goal." + health.type.rawValue, goal: $goal)
 
             }
-            .frame(height: 480)
-            .scrollContentBackground(.hidden)
 
 
         })

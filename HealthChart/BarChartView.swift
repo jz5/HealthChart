@@ -89,7 +89,7 @@ struct BarChartView: View {
 
     var body: some View {
         LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress,
-                   shareTitle: health.title, shareSubtitle: periodText, header: {
+                   shareTitle: health.title, shareSubtitle: shareSubtitleText, header: {
             Group {
                 HStack {
                     Text(period.title)
@@ -324,7 +324,7 @@ struct BarChartView: View {
                 }
 
             }, footer: {
-                Form {
+                ChartSettingsCard {
                     MonthRangeSlider(range: $range, inRange: inRange,
                         disabled: !isCompleted || isEmpty,
                         periodText: periodText,
@@ -342,8 +342,6 @@ struct BarChartView: View {
                     AnalysisOptionsView(goalKey: "goal." + health.type.rawValue, goal: $goal)
 
                 }
-                    .frame(height: 480)
-                    .scrollContentBackground(.hidden)
 
 
             })
@@ -361,6 +359,18 @@ struct BarChartView: View {
             .onChange(of: period) {
                 calculateAverage()
             }
+    }
+
+    /// 共有画像のサブタイトル（期間と単位）
+    private var shareSubtitleText: String? {
+        var parts: [String] = []
+        if let periodText {
+            parts.append(periodText)
+        }
+        if !health.sampleUnitText.isEmpty {
+            parts.append("単位: " + health.sampleUnitText)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
     }
 
     /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
