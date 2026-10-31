@@ -192,36 +192,24 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
 
         } else if verticalSizeClass != .compact {
             // iPhone縦・iPad(縦横とも): ヘッダー+チャート+設定のスクロールレイアウト
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Group {
-                            header
-                        }
-                        .padding(.horizontal)
-                        chart
-                            .frame(height: 350)
-                            .padding()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Group {
+                        header
                     }
-                    .background(.background)
-                    footer
-                        .id("chartFooter")
+                    .padding(.horizontal)
+                    chart
+                        .frame(height: 350)
+                        .padding()
                 }
-                .scrollDismissesKeyboard(.immediately)
-                .background(Color(colorScheme == .dark ? UIColor.systemBackground : UIColor.secondarySystemBackground))
-                .toolbar { shareToolbarItem }
-                .sheet(item: $shareImage) { item in
-                    ActivityShareSheet(items: [item.image])
-                }
-                // 目標の入力欄はフッター最下部にあり、キーボード表示時の
-                // 自動スクロールだけでは「完了」バーに隠れることがある(特にiPad)。
-                // キーボードが出たらフッター末尾まで明示的にスクロールする
-                .onReceive(NotificationCenter.default.publisher(
-                    for: UIResponder.keyboardDidShowNotification)) { _ in
-                    withAnimation {
-                        proxy.scrollTo("chartFooter", anchor: .bottom)
-                    }
-                }
+                .background(.background)
+                footer
+            }
+            .scrollDismissesKeyboard(.immediately)
+            .background(Color(colorScheme == .dark ? UIColor.systemBackground : UIColor.secondarySystemBackground))
+            .toolbar { shareToolbarItem }
+            .sheet(item: $shareImage) { item in
+                ActivityShareSheet(items: [item.image])
             }
 
         } else {

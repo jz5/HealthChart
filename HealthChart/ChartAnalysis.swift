@@ -325,16 +325,14 @@ struct AnalysisOptionsView: View {
                 .onChange(of: goalText) {
                     saveGoal()
                 }
-                .toolbar {
-                    // テンキーには閉じるキーがないため「完了」を付ける
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button("完了") {
-                            goalFocused = false
-                        }
-                    }
+            if goalFocused {
+                // テンキーには閉じるキーがない。キーボード付属の「完了」バーは
+                // フローティング表示で入力欄に重なるため、行内に置く
+                Button("完了") {
+                    goalFocused = false
                 }
-            if goal != nil {
+                .buttonStyle(.borderless)
+            } else if goal != nil {
                 Button {
                     goalText = ""
                 } label: {
@@ -353,10 +351,6 @@ struct AnalysisOptionsView: View {
             } else {
                 UserDefaults.standard.removeObject(forKey: goalKey)
             }
-        }
-        // 入力中はキーボードの「完了」バーに入力欄が重ならないよう下に余白を作る
-        if goalFocused {
-            Color.clear.frame(height: 80)
         }
     }
 
