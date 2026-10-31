@@ -68,6 +68,9 @@ struct BarChartView: View {
     }
     @State private var period: AveragePeriod = .day
 
+    @AppStorage("chartUnit") private var chartUnitRaw = ChartUnit.month.rawValue
+    private var chartUnit: ChartUnit { ChartUnit(rawValue: chartUnitRaw) ?? .month }
+
     init(health: HealthItem) {
         self.health = health
 
@@ -142,10 +145,11 @@ struct BarChartView: View {
 
 
         }, chart: {
-                let filteredItems = items.filter {
+                let monthlyItems = items.filter {
                     $0.date >= items[range.lowerBound].date &&
                         $0.date <= items[range.upperBound].date
                 }
+                let filteredItems = chartUnit == .year ? yearlyItems(monthlyItems) : monthlyItems
 
                 GeometryReader { geometry in
                     Chart {
@@ -156,12 +160,16 @@ struct BarChartView: View {
                                 to: items[range.upperBound].date).month ?? 0
 
                             let width = geometry.size.width / Double(elapsed + 12)
+                            // 年単位は本数が少ないので太めの棒にする
+                            let dimension = chartUnit == .year
+                                ? MarkDimension(floatLiteral: Swift.min(26, Swift.max(8, geometry.size.width / Double(filteredItems.count * 2))))
+                                : barWidth(width)
 
                             ForEach(filteredItems) {
                                 BarMark (
                                     x: .value("日付", $0.date),
                                     y: .value(health.sampleUnitText, $0.value),
-                                    width: barWidth(width)
+                                    width: dimension
                                 )
                                     .accessibilityLabel("\($0.date)")
                                     .accessibilityValue("\($0.value) " + health.sampleUnitText)
@@ -283,13 +291,13 @@ struct BarChartView: View {
                                         Text(formatValue(selectedItem.value, health.sampleValueFormat))
                                             .fontWeight(.medium)
                                             .font(.system(.largeTitle, design: .rounded))
-                                        Text(yearMonthDateFormatter.string(from: selectedItem.date))
+                                        Text((chartUnit == .year ? yearDateFormatter : yearMonthDateFormatter).string(from: selectedItem.date))
                                             .font(.subheadline)
                                             .foregroundColor(.gray)
                                             .fontWeight(.semibold)
                                         if let previous = ChartAnalysis.valueOneYearBefore(
                                                 of: selectedItem.date,
-                                                in: items.map { DatedValue(date: $0.date, value: $0.value) }),
+                                                in: (chartUnit == .year ? yearlyItems(items) : items).map { DatedValue(date: $0.date, value: $0.value) }),
                                            let change = ChartAnalysis.yearOverYearChange(
                                                 current: selectedItem.value, previous: previous) {
                                             Text(String(format: "前年比 %+.1f%%", change))
@@ -326,6 +334,7 @@ struct BarChartView: View {
                             }
                         })
 
+                    ChartUnitPicker(chartUnitRaw: $chartUnitRaw)
                     Toggle("平均", isOn: $showAverage)
                     Toggle("最大", isOn: $showMinMax)
                     AnalysisOptionsView(goalKey: "goal." + health.type.rawValue, goal: $goal)
@@ -382,6 +391,27 @@ struct BarChartView: View {
             return nearestItem
         }
         return nil
+    }
+
+    /// 月次アイテムを年ごとに畳む。値は「年間合計÷データのあった日数」=1日あたりの平均
+    private func yearlyItems(_ items: [ChartItem]) -> [ChartItem] {
+        let calendar = Calendar.current
+        var groups: [Int: (sum: Double, count: Int, start: Date, end: Date)] = [:]
+        for item in items {
+            let year = calendar.component(.year, from: item.date)
+            var g = groups[year] ?? (0, 0, item.startDate, item.endDate)
+            g.sum += item.sum
+            g.count += item.count
+            g.start = Swift.min(g.start, item.startDate)
+            g.end = Swift.max(g.end, item.endDate)
+            groups[year] = g
+        }
+        return groups.keys.sorted().compactMap { year in
+            guard let g = groups[year], g.count > 0,
+                  let mid = calendar.date(from: DateComponents(year: year, month: 7, day: 1)) else { return nil }
+            return ChartItem(value: g.sum / Double(g.count), date: mid,
+                             startDate: g.start, endDate: g.end, sum: g.sum, count: g.count)
+        }
     }
 
     private func calculateAverage() {

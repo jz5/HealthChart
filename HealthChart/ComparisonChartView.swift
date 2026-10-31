@@ -20,6 +20,21 @@ struct ComparisonChartView: View {
     @State private var pointsB: [DatedValue] = []
     @State private var isLoading = true
 
+    /// 2項目いずれかにデータのある月(昇順)。期間スライダーの目盛りになる
+    @State private var allMonths: [Date] = []
+    @State private var range: ClosedRange<Int> = 0...0
+    @State private var inRange: ClosedRange<Int> = 0...0
+
+    @AppStorage("chartUnit") private var chartUnitRaw = ChartUnit.month.rawValue
+    private var chartUnit: ChartUnit { ChartUnit(rawValue: chartUnitRaw) ?? .month }
+
+    private let yearMonthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.setLocalizedDateFormatFromTemplate("yMMM")
+        return formatter
+    }()
+
     /// ホームのお気に入りの組み合わせから開くときは、最初のクエリが走る前に
     /// 保存値を書き換えておく(onAppearだと旧ペアのロードと競合する)
     init(presetA: String? = nil, presetB: String? = nil) {
@@ -61,14 +76,23 @@ struct ComparisonChartView: View {
                     Text("比較できるデータがありません")
                         .foregroundColor(.gray)
                 } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        MonthRangeSlider(range: $range, inRange: inRange, disabled: false)
+                        if let periodText {
+                            Text(periodText)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    ChartUnitPicker(chartUnitRaw: $chartUnitRaw)
                     let pairs = matchedPairs()
                     correlationContent(pairs: pairs)
                     scatterContent(pairs: pairs)
                     if let itemA {
-                        chartContent(item: itemA, points: pointsA)
+                        chartContent(item: itemA, points: displayA)
                     }
                     if let itemB {
-                        chartContent(item: itemB, points: pointsB)
+                        chartContent(item: itemB, points: displayB)
                     }
                 }
             } footer: {
@@ -105,13 +129,14 @@ struct ComparisonChartView: View {
                         .font(.subheadline)
                         .foregroundColor(.gray)
                     Spacer()
-                    Text("\(pairs.count)ヶ月分")
+                    Text("\(pairs.count)" + (chartUnit == .year ? "年分" : "ヶ月分"))
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
             }
         } else {
-            Text("重なる月が3ヶ月未満のため相関を計算できません")
+            Text(chartUnit == .year ? "重なる年が3年未満のため相関を計算できません"
+                                    : "重なる月が3ヶ月未満のため相関を計算できません")
                 .font(.caption)
                 .foregroundColor(.gray)
         }
@@ -190,8 +215,38 @@ struct ComparisonChartView: View {
         .padding(.vertical, 4)
     }
 
+    // MARK: - 期間フィルタ
+
+    /// スライダーで選択中の期間(月の中央日時)。不正なインデックスならnil
+    private var selectedSpan: ClosedRange<Date>? {
+        guard allMonths.indices.contains(range.lowerBound),
+              allMonths.indices.contains(range.upperBound) else { return nil }
+        return allMonths[range.lowerBound]...allMonths[range.upperBound]
+    }
+
+    private var filteredA: [DatedValue] { filterBySpan(pointsA) }
+    private var filteredB: [DatedValue] { filterBySpan(pointsB) }
+
+    /// グラフの単位が「年」のときは年平均に畳んだ点列を表示・相関に使う
+    private var displayA: [DatedValue] { chartUnit == .year ? ChartAnalysis.yearlyMean(filteredA) : filteredA }
+    private var displayB: [DatedValue] { chartUnit == .year ? ChartAnalysis.yearlyMean(filteredB) : filteredB }
+
+    private func filterBySpan(_ points: [DatedValue]) -> [DatedValue] {
+        guard let span = selectedSpan else { return points }
+        return points.filter { span.contains($0.date) }
+    }
+
+    private var periodText: String? {
+        guard let span = selectedSpan else { return nil }
+        if range.lowerBound == range.upperBound {
+            return yearMonthFormatter.string(from: span.lowerBound)
+        }
+        return yearMonthFormatter.string(from: span.lowerBound) + "〜" +
+            yearMonthFormatter.string(from: span.upperBound)
+    }
+
     private var xDomain: ClosedRange<Date> {
-        let dates = (pointsA + pointsB).map { $0.date }
+        let dates = (displayA + displayB).map { $0.date }
         guard let min = dates.min(), let max = dates.max() else {
             let now = Date()
             return now.addingTimeInterval(-1)...now
@@ -213,9 +268,9 @@ struct ComparisonChartView: View {
             let comps = calendar.dateComponents([.year, .month], from: date)
             return "\(comps.year ?? 0)-\(comps.month ?? 0)"
         }
-        let mapB = Dictionary(pointsB.map { (key($0.date), $0.value) },
+        let mapB = Dictionary(displayB.map { (key($0.date), $0.value) },
                               uniquingKeysWith: { first, _ in first })
-        return pointsA.compactMap { a in
+        return displayA.compactMap { a in
             mapB[key(a.date)].map { (a.value, $0) }
         }
     }
@@ -226,6 +281,12 @@ struct ComparisonChartView: View {
 
         pointsA = await loadPoints(for: itemA)
         pointsB = await loadPoints(for: itemB)
+
+        // 期間スライダーの目盛りと選択範囲を全期間にリセットする
+        allMonths = Set((pointsA + pointsB).map { $0.date }).sorted()
+        let upper = max(0, allMonths.count - 1)
+        range = 0...upper
+        inRange = 0...upper
 
         isLoading = false
     }

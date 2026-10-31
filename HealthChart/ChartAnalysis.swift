@@ -15,7 +15,33 @@ struct DatedValue: Identifiable {
     let value: Double
 }
 
+/// チャートのx軸単位(月ごと/年ごと)。全チャートで共有する
+enum ChartUnit: String, CaseIterable, Identifiable {
+    case month
+    case year
+    var id: Self { self }
+    var title: String { self == .month ? "月" : "年" }
+}
+
 enum ChartAnalysis {
+
+    /// 月次点列を年ごとの平均に畳む(dateは年の中央7月1日)
+    static func yearlyMean(_ points: [DatedValue]) -> [DatedValue] {
+        let calendar = Calendar.current
+        var groups: [Int: (sum: Double, count: Int)] = [:]
+        for point in points {
+            let year = calendar.component(.year, from: point.date)
+            var g = groups[year] ?? (0, 0)
+            g.sum += point.value
+            g.count += 1
+            groups[year] = g
+        }
+        return groups.keys.sorted().compactMap { year in
+            guard let g = groups[year], g.count > 0,
+                  let mid = calendar.date(from: DateComponents(year: year, month: 7, day: 1)) else { return nil }
+            return DatedValue(date: mid, value: g.sum / Double(g.count))
+        }
+    }
 
     /// 末尾windowサイズの移動平均。先頭の(window-1)点は含まれない。
     static func movingAverage(_ points: [DatedValue], window: Int) -> [DatedValue] {
@@ -163,20 +189,20 @@ struct AnalysisMarks: ChartContent {
                 LineMark(
                     x: .value("日付", point.date),
                     y: .value(unitText, point.value),
-                    series: .value("系列", "3ヶ月平均")
+                    series: .value("系列", "3区間平均")
                 )
-                .lineStyle(StrokeStyle(lineWidth: 1.5))
-                .foregroundStyle(color.opacity(0.55))
+                .lineStyle(StrokeStyle(lineWidth: 2))
+                .foregroundStyle(color.opacity(0.8))
                 .interpolationMethod(.catmullRom)
             }
             ForEach(ChartAnalysis.movingAverage(points, window: 12)) { point in
                 LineMark(
                     x: .value("日付", point.date),
                     y: .value(unitText, point.value),
-                    series: .value("系列", "12ヶ月平均")
+                    series: .value("系列", "12区間平均")
                 )
                 .lineStyle(StrokeStyle(lineWidth: 2.5))
-                .foregroundStyle(color.opacity(0.3))
+                .foregroundStyle(color.opacity(0.45))
                 .interpolationMethod(.catmullRom)
             }
         }
@@ -225,6 +251,27 @@ struct AnalysisMarks: ChartContent {
     }
 }
 
+/// グラフの単位(月/年)を切り替えるフッター行。年にすると点が年平均に畳まれ、
+/// 長期のトレンドや移動平均が読み取りやすくなる
+struct ChartUnitPicker: View {
+    @Binding var chartUnitRaw: String
+
+    var body: some View {
+        HStack {
+            Text("グラフの単位")
+            Spacer()
+            Picker("グラフの単位", selection: $chartUnitRaw) {
+                ForEach(ChartUnit.allCases) { unit in
+                    Text(unit.title).tag(unit.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 120)
+        }
+    }
+}
+
 /// 分析トグルと目標値入力をまとめたフッター部品
 struct AnalysisOptionsView: View {
     @AppStorage("showMovingAverage") var showMovingAverage = false
@@ -237,7 +284,7 @@ struct AnalysisOptionsView: View {
     @FocusState private var goalFocused: Bool
 
     var body: some View {
-        Toggle("移動平均(3/12ヶ月)", isOn: $showMovingAverage)
+        Toggle("移動平均(3/12区間)", isOn: $showMovingAverage)
         Toggle("トレンド", isOn: $showTrend)
         Toggle("統計(中央値・四分位)", isOn: $showStats)
         HStack {
