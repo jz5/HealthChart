@@ -211,7 +211,8 @@ struct BarChartView: View {
                                       showMovingAverage: showMovingAverage,
                                       showTrend: showTrend,
                                       showStats: showStats,
-                                      goal: goal)
+                                      goal: goal,
+                                      clampTrendToZero: true)
 
                     }
                         .chartXAxis {

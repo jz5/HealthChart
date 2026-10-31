@@ -84,6 +84,21 @@ enum ChartAnalysis {
         return (slope, meanY - slope * meanX)
     }
 
+    /// 線分をy≧0の範囲に切り詰める。負の部分は0との交点までで打ち切り、
+    /// 全体が負なら空を返す(歩数やカロリーなど非負の棒グラフで、
+    /// トレンド線が負に突き抜けて縦軸が負側へ広がるのを防ぐ)。
+    static func clampSegmentToNonNegative(start: DatedValue, end: DatedValue) -> [DatedValue] {
+        if start.value >= 0 && end.value >= 0 { return [start, end] }
+        if start.value < 0 && end.value < 0 { return [] }
+
+        // 0との交点を線形補間で求める
+        let t = start.value / (start.value - end.value)
+        let crossInterval = start.date.timeIntervalSince1970
+            + t * (end.date.timeIntervalSince1970 - start.date.timeIntervalSince1970)
+        let cross = DatedValue(date: Date(timeIntervalSince1970: crossInterval), value: 0)
+        return start.value < 0 ? [cross, end] : [start, cross]
+    }
+
     /// 基準日からの経過月数(30.44日=平均月で換算)
     static func monthsSince(_ reference: Date, _ date: Date) -> Double {
         date.timeIntervalSince(reference) / (30.44 * 24 * 60 * 60)
@@ -188,6 +203,8 @@ struct AnalysisMarks: ChartContent {
     var showTrend = false
     var showStats = false
     var goal: Double? = nil
+    /// 非負の値しか取らないチャート(棒グラフ)で、トレンド線を0未満に描かない
+    var clampTrendToZero = false
 
     var body: some ChartContent {
         if showMovingAverage {
@@ -213,7 +230,10 @@ struct AnalysisMarks: ChartContent {
             }
         }
         if showTrend, let trend = ChartAnalysis.trendLine(points) {
-            ForEach([trend.start, trend.end]) { point in
+            let segment = clampTrendToZero
+                ? ChartAnalysis.clampSegmentToNonNegative(start: trend.start, end: trend.end)
+                : [trend.start, trend.end]
+            ForEach(segment) { point in
                 LineMark(
                     x: .value("日付", point.date),
                     y: .value(unitText, point.value),
@@ -289,6 +309,9 @@ struct AnalysisOptionsView: View {
     @State private var goalText = ""
     @FocusState private var goalFocused: Bool
 
+    /// 目標の上限。桁違いの巨大数は軸が壊れて描画も重くなるため受け付けない
+    static let maxGoal: Double = 9_999_999
+
     var body: some View {
         Toggle("移動平均（3/12区間）", isOn: $showMovingAverage)
         Toggle("トレンド", isOn: $showTrend)
@@ -322,16 +345,28 @@ struct AnalysisOptionsView: View {
             }
         }
         .onAppear {
-            if let value = UserDefaults.standard.object(forKey: goalKey) as? Double {
+            if let value = UserDefaults.standard.object(forKey: goalKey) as? Double,
+               value > 0, value <= Self.maxGoal {
                 goal = value
                 goalText = value == value.rounded() ?
                     String(Int(value)) : String(value)
+            } else {
+                UserDefaults.standard.removeObject(forKey: goalKey)
             }
+        }
+        // 入力中はキーボードの「完了」バーに入力欄が重ならないよう下に余白を作る
+        if goalFocused {
+            Color.clear.frame(height: 60)
         }
     }
 
     private func saveGoal() {
         let normalized = goalText.replacingOccurrences(of: ",", with: ".")
+        if let value = Double(normalized), value > Self.maxGoal {
+            // 上限を超える桁は受け付けない(末尾を削って戻す)
+            goalText = String(goalText.dropLast())
+            return
+        }
         if let value = Double(normalized), value > 0 {
             goal = value
             UserDefaults.standard.set(value, forKey: goalKey)

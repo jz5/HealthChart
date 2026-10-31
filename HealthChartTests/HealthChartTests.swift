@@ -413,3 +413,39 @@ struct ChartLabelsTests {
         #expect(ChartLabels.shareSubtitle(period: nil, unitText: "") == nil)
     }
 }
+
+// MARK: - トレンド線の0クランプ
+
+struct ClampSegmentTests {
+
+    private func dv(_ day: Double, _ value: Double) -> DatedValue {
+        DatedValue(date: Date(timeIntervalSince1970: day * 86400), value: value)
+    }
+
+    @Test func 両端が非負ならそのまま() {
+        let result = ChartAnalysis.clampSegmentToNonNegative(start: dv(0, 100), end: dv(10, 200))
+        #expect(result.count == 2)
+        #expect(result[0].value == 100 && result[1].value == 200)
+    }
+
+    @Test func 開始側が負なら0交点から始まる() {
+        // (0日, -100) → (10日, +100): 5日目で0と交差する
+        let result = ChartAnalysis.clampSegmentToNonNegative(start: dv(0, -100), end: dv(10, 100))
+        #expect(result.count == 2)
+        #expect(result[0].value == 0)
+        #expect(abs(result[0].date.timeIntervalSince1970 - 5 * 86400) < 1)
+        #expect(result[1].value == 100)
+    }
+
+    @Test func 終了側が負なら0交点で打ち切る() {
+        let result = ChartAnalysis.clampSegmentToNonNegative(start: dv(0, 100), end: dv(10, -100))
+        #expect(result.count == 2)
+        #expect(result[0].value == 100)
+        #expect(result[1].value == 0)
+        #expect(abs(result[1].date.timeIntervalSince1970 - 5 * 86400) < 1)
+    }
+
+    @Test func 全体が負なら空() {
+        #expect(ChartAnalysis.clampSegmentToNonNegative(start: dv(0, -10), end: dv(10, -5)).isEmpty)
+    }
+}
