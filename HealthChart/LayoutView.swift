@@ -17,17 +17,43 @@ struct MonthRangeSlider: View {
     @Binding var range: ClosedRange<Int>
     let inRange: ClosedRange<Int>
     let disabled: Bool
+    /// スライダーの下に出す選択期間(例「2023年11月〜2026年10月」)
+    var periodText: String? = nil
     var onEditingChanged: (Bool) -> Void = { _ in }
 
     var body: some View {
-        if inRange.lowerBound < inRange.upperBound {
-            RangeSlider(range: $range, in: inRange, step: 1, onEditingChanged: onEditingChanged)
-                .disabled(disabled)
-        } else {
-            RangeSlider(range: .constant(0...1), in: 0...1, step: 1)
-                .disabled(true)
+        VStack(alignment: .leading, spacing: 4) {
+            if inRange.lowerBound < inRange.upperBound {
+                RangeSlider(range: $range, in: inRange, step: 1, onEditingChanged: onEditingChanged)
+                    .disabled(disabled)
+            } else {
+                RangeSlider(range: .constant(0...1), in: 0...1, step: 1)
+                    .disabled(true)
+            }
+            if let periodText {
+                Text(periodText)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
         }
     }
+}
+
+/// UIActivityViewControllerのSwiftUIラッパー(グラフ画像の共有に使う)
+struct ActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+/// 共有シートに渡すレンダリング済みのグラフ画像
+struct ChartShareImage: Identifiable {
+    let id = UUID()
+    let image: UIImage
 }
 
 struct LayoutView<Header: View, Chart: View, Footer: View>: View {
@@ -36,6 +62,12 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     @Binding var requested: Bool
     /// 全期間集計の進み具合(0〜1)。nilなら不確定インジケータを出す
     @Binding var progress: Double?
+    /// 共有画像に入れるタイトル(項目名)。nilなら共有ボタンを出さない
+    var shareTitle: String?
+    /// 共有画像に入れるサブタイトル(期間など)
+    var shareSubtitle: String?
+
+    @State private var shareImage: ChartShareImage?
 
     var header: Header
     var chart: Chart
@@ -52,6 +84,8 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
          isEmpty: Binding<Bool>,
          requested: Binding<Bool>,
          progress: Binding<Double?> = .constant(nil),
+         shareTitle: String? = nil,
+         shareSubtitle: String? = nil,
          @ViewBuilder header: () -> Header,
          @ViewBuilder chart: () -> Chart,
          @ViewBuilder footer: () -> Footer) {
@@ -64,6 +98,8 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
         self._isEmpty = isEmpty
         self._requested = requested
         self._progress = progress
+        self.shareTitle = shareTitle
+        self.shareSubtitle = shareSubtitle
     }
     
     var body: some View {
@@ -114,13 +150,11 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
             }
             .scrollDismissesKeyboard(.immediately)
             .background(Color(colorScheme == .dark ? UIColor.systemBackground : UIColor.secondarySystemBackground))
-            /*.toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    ShareLink(item: Image(uiImage: generateSnapshot()),
-                              preview: SharePreview("グラフ", image: Image(uiImage: generateSnapshot())))
-                }
-            }*/
-            
+            .toolbar { shareToolbarItem }
+            .sheet(item: $shareImage) { item in
+                ActivityShareSheet(items: [item.image])
+            }
+
         } else {
             // iPhone横向き: チャートのみ全画面表示
             ZStack {
@@ -128,22 +162,51 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
                     .padding()
             }
             .background(.background)
-            /*.toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    ShareLink(item: Image(uiImage: generateSnapshot()),
-                              preview: SharePreview("グラフ", image: Image(uiImage: generateSnapshot())))
-                }
-            }*/
+            .toolbar { shareToolbarItem }
+            .sheet(item: $shareImage) { item in
+                ActivityShareSheet(items: [item.image])
+            }
         }
     }
-    
+
+    @ToolbarContentBuilder
+    private var shareToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            if shareTitle != nil {
+                Button {
+                    renderShareImage()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+        }
+    }
+
+    /// 現在のチャートを画像にして共有シートを開く。
+    /// ヘッダーの数値は含めず、タイトル・期間とグラフだけを描く
     @MainActor
-    private func generateSnapshot() -> UIImage {
-        print("generateSnapshot")
-        let renderer = ImageRenderer(content: chart)
-        renderer.scale = UIScreen.main.scale
-        renderer.proposedSize = ProposedViewSize(CGSize(width: 800, height: 400))
-        return renderer.uiImage ?? UIImage()
+    private func renderShareImage() {
+        let content = VStack(alignment: .leading, spacing: 8) {
+            if let shareTitle {
+                Text(shareTitle)
+                    .font(.headline)
+            }
+            if let shareSubtitle {
+                Text(shareSubtitle)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            chart
+                .frame(width: 760, height: 400)
+        }
+        .padding(24)
+        .background(Color(UIColor.systemBackground))
+
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 2
+        if let image = renderer.uiImage {
+            shareImage = ChartShareImage(image: image)
+        }
     }
 }
 

@@ -52,6 +52,21 @@ struct LineChartView: View {
     @AppStorage("chartUnit") private var chartUnitRaw = ChartUnit.month.rawValue
     private var chartUnit: ChartUnit { ChartUnit(rawValue: chartUnitRaw) ?? .month }
 
+    /// 相対表示: 実数値の代わりに期間最初の値からの差分で描く(SNS共有向け)
+    @AppStorage("relativeDisplay") private var relativeDisplay = false
+
+    /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
+    private var periodText: String? {
+        guard items.indices.contains(range.lowerBound),
+              items.indices.contains(range.upperBound) else { return nil }
+        let start = items[range.lowerBound].date
+        let end = items[range.upperBound].date
+        if range.lowerBound == range.upperBound {
+            return yearMonthDateFormatter.string(from: start)
+        }
+        return yearMonthDateFormatter.string(from: start) + "〜" + yearMonthDateFormatter.string(from: end)
+    }
+
     /// 月次アイテムを年ごとの平均に畳む
     private func yearlyItems(_ items: [ChartItem]) -> [ChartItem] {
         let calendar = Calendar.current
@@ -90,7 +105,8 @@ struct LineChartView: View {
     }
 
     var body: some View {
-        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress, header: {
+        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress,
+                   shareTitle: health.title, shareSubtitle: periodText, header: {
             Group {
                 Text(health.sampleValueTitle)
                     .font(.subheadline)
@@ -141,9 +157,24 @@ struct LineChartView: View {
                 $0.date >= items[range.lowerBound].date &&
                 $0.date <= items[range.upperBound].date
             }
-            let filteredItems = chartUnit == .year ? yearlyItems(monthlyItems) : monthlyItems
+            let unitItems = chartUnit == .year ? yearlyItems(monthlyItems) : monthlyItems
+            // 相対表示: 期間最初の値を基準(0)にした差分へ変換する(共有時に実数値を出さないため)
+            let base = relativeDisplay ? (unitItems.first?.value ?? 0) : 0
+            let filteredItems = relativeDisplay ? unitItems.map {
+                ChartItem(value: $0.value - base, date: $0.date, startDate: $0.startDate, endDate: $0.endDate)
+            } : unitItems
 
             Chart {
+                if relativeDisplay {
+                    RuleMark(y: .value("基準", 0))
+                        .lineStyle(StrokeStyle(lineWidth: 1))
+                        .foregroundStyle(.green.opacity(0.7))
+                        .annotation(position: .topLeading, alignment: .leading) {
+                            Text("基準")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                }
                 ForEach(filteredItems) {
                     LineMark (
                         x: .value("日付", $0.date),
@@ -158,7 +189,8 @@ struct LineChartView: View {
                 }
 
                 if showAverage,
-                   let value {
+                   let rawValue = value {
+                    let value = rawValue - base
                     RuleMark(y: .value("平均", value))
                         .lineStyle(StrokeStyle(lineWidth: 1))
                         .foregroundStyle(health.color)
@@ -203,7 +235,7 @@ struct LineChartView: View {
                               showMovingAverage: showMovingAverage,
                               showTrend: showTrend,
                               showStats: showStats,
-                              goal: goal)
+                              goal: goal.map { $0 - base })
             }
             .chartXAxis {
                 AxisMarks(values: .stride(by: .month, count: 1)) { value in
@@ -281,14 +313,16 @@ struct LineChartView: View {
 
                             VStack(alignment: .center) {
 
-                                Text(formatValue(selectedItem.value, health.sampleValueFormat))
+                                Text((relativeDisplay && selectedItem.value > 0 ? "+" : "") +
+                                     formatValue(selectedItem.value, health.sampleValueFormat))
                                     .fontWeight(.medium)
                                     .font(.system(.largeTitle, design: .rounded))
                                 Text((chartUnit == .year ? yearDateFormatter : yearMonthDateFormatter).string(from: selectedItem.date))
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                                     .fontWeight(.semibold)
-                                if let previous = ChartAnalysis.valueOneYearBefore(
+                                if !relativeDisplay,
+                                   let previous = ChartAnalysis.valueOneYearBefore(
                                         of: selectedItem.date,
                                         in: (chartUnit == .year ? yearlyItems(items) : items).map { DatedValue(date: $0.date, value: $0.value) }),
                                    let change = ChartAnalysis.yearOverYearChange(
@@ -318,6 +352,7 @@ struct LineChartView: View {
             Form {
                 MonthRangeSlider(range: $range, inRange: inRange,
                                  disabled: !isCompleted || isEmpty,
+                                 periodText: periodText,
                                  onEditingChanged: { editing in
                     if editing {
                             selectedItem = nil
@@ -327,6 +362,7 @@ struct LineChartView: View {
                 })
 
                 ChartUnitPicker(chartUnitRaw: $chartUnitRaw)
+                Toggle("相対表示(期間最初の値を基準)", isOn: $relativeDisplay)
                 Toggle("平均", isOn: $showAverage)
                 Toggle("最小・最大", isOn: $showMinMax)
                 Toggle("シンボル", isOn: $showSymbols)

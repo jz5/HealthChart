@@ -72,7 +72,8 @@ struct BloodPressureChartView: View {
     }
 
     var body: some View {
-        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress, header: {
+        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress,
+                   shareTitle: health.title, shareSubtitle: periodText, header: {
             Group {
 
                 valuesContent(systolicMin: systolicMin, systolicMax: systolicMax, diastolicMin: diastolicMin, diastolicMax: diastolicMax)
@@ -106,6 +107,7 @@ struct BloodPressureChartView: View {
                 Form {
                     MonthRangeSlider(range: $range, inRange: inRange,
                         disabled: !isCompleted || isEmpty,
+                        periodText: periodText,
                         onEditingChanged: { editing in
                             if editing {
 
@@ -458,6 +460,18 @@ struct BloodPressureChartView: View {
             return nearestIndex
         }
         return nil
+    }
+
+    /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
+    private var periodText: String? {
+        guard SystolicItems.indices.contains(range.lowerBound),
+              SystolicItems.indices.contains(range.upperBound) else { return nil }
+        let start = SystolicItems[range.lowerBound].date
+        let end = SystolicItems[range.upperBound].date
+        if range.lowerBound == range.upperBound {
+            return yearMonthDateFormatter.string(from: start)
+        }
+        return yearMonthDateFormatter.string(from: start) + "〜" + yearMonthDateFormatter.string(from: end)
     }
 
     private func calculateMinMax() {

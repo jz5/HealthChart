@@ -76,14 +76,8 @@ struct ComparisonChartView: View {
                     Text("比較できるデータがありません")
                         .foregroundColor(.gray)
                 } else {
-                    VStack(alignment: .leading, spacing: 4) {
-                        MonthRangeSlider(range: $range, inRange: inRange, disabled: false)
-                        if let periodText {
-                            Text(periodText)
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                    }
+                    MonthRangeSlider(range: $range, inRange: inRange, disabled: false,
+                                     periodText: periodText)
                     ChartUnitPicker(chartUnitRaw: $chartUnitRaw)
                     let pairs = matchedPairs()
                     correlationContent(pairs: pairs)

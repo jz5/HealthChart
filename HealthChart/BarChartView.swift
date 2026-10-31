@@ -88,7 +88,8 @@ struct BarChartView: View {
     }
 
     var body: some View {
-        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress, header: {
+        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress,
+                   shareTitle: health.title, shareSubtitle: periodText, header: {
             Group {
                 HStack {
                     Text(period.title)
@@ -326,6 +327,7 @@ struct BarChartView: View {
                 Form {
                     MonthRangeSlider(range: $range, inRange: inRange,
                         disabled: !isCompleted || isEmpty,
+                        periodText: periodText,
                         onEditingChanged: { editing in
                             if editing {
                                 selectedItem = nil
@@ -359,6 +361,18 @@ struct BarChartView: View {
             .onChange(of: period) {
                 calculateAverage()
             }
+    }
+
+    /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
+    private var periodText: String? {
+        guard items.indices.contains(range.lowerBound),
+              items.indices.contains(range.upperBound) else { return nil }
+        let start = items[range.lowerBound].date
+        let end = items[range.upperBound].date
+        if range.lowerBound == range.upperBound {
+            return yearMonthDateFormatter.string(from: start)
+        }
+        return yearMonthDateFormatter.string(from: start) + "〜" + yearMonthDateFormatter.string(from: end)
     }
 
     private var rangePoints: [DatedValue] {
