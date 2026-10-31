@@ -274,11 +274,8 @@ struct LineChartView: View {
         guard chartUnit == .year,
               items.indices.contains(range.lowerBound),
               items.indices.contains(range.upperBound) else { return nil }
-        let calendar = Calendar.current
-        let startMonth = calendar.component(.month, from: items[range.lowerBound].date)
-        let endMonth = calendar.component(.month, from: items[range.upperBound].date)
-        guard startMonth != 1 || endMonth != 12 else { return nil }
-        return ChartLabels.partialYearNote
+        return ChartLabels.partialYearNote(start: items[range.lowerBound].date,
+                                           end: items[range.upperBound].date)
     }
 
     /// 月次アイテムを年ごとの平均に畳む

@@ -346,7 +346,7 @@ struct AnalysisOptionsView: View {
             }
             Button("キャンセル", role: .cancel) {}
         } message: {
-            Text("チャートに目標の線を表示します")
+            Text("チャートに目標の線を表示します（上限 9,999,999）")
         }
         .onAppear {
             if let value = UserDefaults.standard.object(forKey: goalKey) as? Double,

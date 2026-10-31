@@ -68,8 +68,14 @@ enum ChartLabels {
         return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
     }
 
-    /// 年単位表示で端の年が部分集計のときの注記
-    static let partialYearNote = "端の年は期間内の月だけの平均です"
+    /// 年単位表示で端の年が部分集計になる場合の注記(両端とも丸ごと1年ならnil)
+    static func partialYearNote(start: Date, end: Date) -> String? {
+        let calendar = Calendar.current
+        let startMonth = calendar.component(.month, from: start)
+        let endMonth = calendar.component(.month, from: end)
+        guard startMonth != 1 || endMonth != 12 else { return nil }
+        return "端の年は期間内の月だけの平均です"
+    }
 }
 
 /// チャート下の設定リスト。Form(内部スクロール)だと画面の中に

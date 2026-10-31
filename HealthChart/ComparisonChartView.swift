@@ -247,11 +247,7 @@ struct ComparisonChartView: View {
     /// 年単位表示で端の年が部分集計になる場合の注記
     private var partialYearNote: String? {
         guard chartUnit == .year, let span = selectedSpan else { return nil }
-        let calendar = Calendar.current
-        let startMonth = calendar.component(.month, from: span.lowerBound)
-        let endMonth = calendar.component(.month, from: span.upperBound)
-        guard startMonth != 1 || endMonth != 12 else { return nil }
-        return ChartLabels.partialYearNote
+        return ChartLabels.partialYearNote(start: span.lowerBound, end: span.upperBound)
     }
 
     private var xDomain: ClosedRange<Date> {
