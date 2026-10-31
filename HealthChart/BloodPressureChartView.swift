@@ -104,14 +104,15 @@ struct BloodPressureChartView: View {
 
             }, footer: {
                 Form {
-                    RangeSlider(range: $range, in: inRange, step: 1,
+                    MonthRangeSlider(range: $range, inRange: inRange,
+                        disabled: !isCompleted || isEmpty,
                         onEditingChanged: { editing in
                             if editing {
 
                             } else {
                                 calculateMinMax()
                             }
-                        }).disabled(!isCompleted || isEmpty)
+                        })
 
                     Toggle("家庭血圧の基準値(135/85)", isOn: $showBPGuide)
 

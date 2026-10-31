@@ -7,6 +7,28 @@
 
 import SwiftUI
 import HealthKit
+import Sliders
+
+/// 月範囲選択スライダーの共通ラッパー。
+/// データが1ヶ月しかないと範囲が0...0になり、Sliders内部の割り算が
+/// NaNを生む(iOS 27はNaN座標のCALayerで例外になりクラッシュする)ため、
+/// その場合はダミー範囲のスライダーを無効状態で表示する。
+struct MonthRangeSlider: View {
+    @Binding var range: ClosedRange<Int>
+    let inRange: ClosedRange<Int>
+    let disabled: Bool
+    var onEditingChanged: (Bool) -> Void = { _ in }
+
+    var body: some View {
+        if inRange.lowerBound < inRange.upperBound {
+            RangeSlider(range: $range, in: inRange, step: 1, onEditingChanged: onEditingChanged)
+                .disabled(disabled)
+        } else {
+            RangeSlider(range: .constant(0...1), in: 0...1, step: 1)
+                .disabled(true)
+        }
+    }
+}
 
 struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     @Binding var isLoading: Bool

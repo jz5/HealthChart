@@ -235,14 +235,15 @@ struct RangeChartView: View {
 
             }, footer: {
                 Form {
-                    RangeSlider(range: $range, in: inRange, step: 1,
+                    MonthRangeSlider(range: $range, inRange: inRange,
+                        disabled: !isCompleted || isEmpty,
                         onEditingChanged: { editing in
                             if editing {
                                 selectedItem = nil
                             } else {
                                 calculateMinMax()
                             }
-                        }).disabled(!isCompleted || isEmpty)
+                        })
 
                 }
                     .frame(height: 150)

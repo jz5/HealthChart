@@ -291,14 +291,15 @@ struct LineChartView: View {
 
         }, footer: {
             Form {
-                RangeSlider(range: $range, in: inRange, step: 1,
-                            onEditingChanged: { editing in
+                MonthRangeSlider(range: $range, inRange: inRange,
+                                 disabled: !isCompleted || isEmpty,
+                                 onEditingChanged: { editing in
                     if editing {
                             selectedItem = nil
                     } else {
                         calculateAverage()
                     }
-                }).disabled(!isCompleted || isEmpty)
+                })
 
                 Toggle("平均", isOn: $showAverage)
                 Toggle("最小・最大", isOn: $showMinMax)

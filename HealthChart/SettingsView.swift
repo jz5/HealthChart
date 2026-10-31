@@ -140,6 +140,7 @@ enum DummyDataSeeder {
             .bodyMass, .bodyFatPercentage,
             .heartRate, .restingHeartRate,
             .bloodPressureSystolic, .bloodPressureDiastolic,
+            .uvExposure,
         ]
         let types = Set(identifiers.compactMap { HKQuantityType.quantityType(forIdentifier: $0) })
         try await store.requestAuthorization(toShare: types, read: [])
@@ -178,6 +179,11 @@ enum DummyDataSeeder {
             add(.heartRate, bpm, 120 + .random(in: -15...25), evening)
             add(.bloodPressureSystolic, .millimeterOfMercury(), (118 + 12 * past + .random(in: -8...8)).rounded(), noon)
             add(.bloodPressureDiastolic, .millimeterOfMercury(), (76 + 7 * past + .random(in: -6...6)).rounded(), noon)
+        }
+
+        // 「データが1ヶ月だけ」の表示確認用(範囲スライダーの縮退ケース)
+        if let noon = calendar.date(byAdding: .hour, value: 12, to: today) {
+            add(.uvExposure, .count(), 5, noon)
         }
 
         try await store.save(samples)

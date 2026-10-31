@@ -316,14 +316,15 @@ struct BarChartView: View {
 
             }, footer: {
                 Form {
-                    RangeSlider(range: $range, in: inRange, step: 1,
+                    MonthRangeSlider(range: $range, inRange: inRange,
+                        disabled: !isCompleted || isEmpty,
                         onEditingChanged: { editing in
                             if editing {
                                 selectedItem = nil
                             } else {
                                 calculateAverage()
                             }
-                        }).disabled(!isCompleted || isEmpty)
+                        })
 
                     Toggle("平均", isOn: $showAverage)
                     Toggle("最大", isOn: $showMinMax)
