@@ -356,7 +356,7 @@ struct AnalysisOptionsView: View {
         }
         // 入力中はキーボードの「完了」バーに入力欄が重ならないよう下に余白を作る
         if goalFocused {
-            Color.clear.frame(height: 60)
+            Color.clear.frame(height: 80)
         }
     }
 
