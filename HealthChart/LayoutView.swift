@@ -12,7 +12,9 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     @Binding var isLoading: Bool
     @Binding var isEmpty: Bool
     @Binding var requested: Bool
-    
+    /// 全期間集計の進み具合(0〜1)。nilなら不確定インジケータを出す
+    @Binding var progress: Double?
+
     var header: Header
     var chart: Chart
     var footer: Footer
@@ -27,6 +29,7 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
     init(isLoading: Binding<Bool>,
          isEmpty: Binding<Bool>,
          requested: Binding<Bool>,
+         progress: Binding<Double?> = .constant(nil),
          @ViewBuilder header: () -> Header,
          @ViewBuilder chart: () -> Chart,
          @ViewBuilder footer: () -> Footer) {
@@ -38,6 +41,7 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
         self._isLoading = isLoading
         self._isEmpty = isEmpty
         self._requested = requested
+        self._progress = progress
     }
     
     var body: some View {
@@ -47,8 +51,18 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
                 .background(.background)
 
         } else if isLoading {
-            ProgressView()
-                .background(.background)
+            VStack(spacing: 12) {
+                if let progress {
+                    ProgressView(value: progress)
+                        .frame(width: 200)
+                    Text("全期間のデータを集計中… \(Int(progress * 100))%")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                } else {
+                    ProgressView()
+                }
+            }
+            .background(.background)
 
         } else if isEmpty {
             VStack {

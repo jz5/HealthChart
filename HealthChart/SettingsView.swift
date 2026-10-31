@@ -181,7 +181,38 @@ enum DummyDataSeeder {
         }
 
         try await store.save(samples)
-        return samples.count
+
+        var count = samples.count
+        if #available(iOS 18.0, *) {
+            count += try await seedWorkoutEffort(store: store, calendar: calendar, today: today)
+        }
+        return count
+    }
+
+    /// ワークアウトの運動量はワークアウトに関連付けないと保存できないため、
+    /// ワークアウト本体を作って relateWorkoutEffortSample で書き込む。
+    @available(iOS 18.0, *)
+    private static func seedWorkoutEffort(store: HKHealthStore, calendar: Calendar, today: Date) async throws -> Int {
+        guard let effortType = HKQuantityType.quantityType(forIdentifier: .workoutEffortScore) else { return 0 }
+        try await store.requestAuthorization(toShare: [HKObjectType.workoutType(), effortType], read: [])
+
+        var count = 0
+        for dayOffset in stride(from: 0, to: 365, by: 3) {
+            guard let day = calendar.date(byAdding: .day, value: -dayOffset, to: today),
+                  let start = calendar.date(byAdding: .hour, value: 19, to: day),
+                  let end = calendar.date(byAdding: .minute, value: 30, to: start) else { continue }
+
+            let workout = HKWorkout(activityType: .running, start: start, end: end)
+            try await store.save(workout)
+
+            let effort = HKQuantitySample(
+                type: effortType,
+                quantity: HKQuantity(unit: .appleEffortScore(), doubleValue: Double.random(in: 1...10).rounded()),
+                start: start, end: end)
+            _ = try await store.relateWorkoutEffortSample(effort, with: workout, activity: nil)
+            count += 2
+        }
+        return count
     }
 }
 #endif

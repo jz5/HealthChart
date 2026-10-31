@@ -204,8 +204,9 @@ class Health: ObservableObject {
         }
         if #available(iOS 18.0, *) {
             items += [
-                make(.workoutEffortScore, "ワークアウトの運動量", .activity, HKUnit.appleEffortScore(), "", "%.0f"),
-                make(.estimatedWorkoutEffortScore, "推定ワークアウト運動量", .activity, HKUnit.appleEffortScore(), "", "%.0f"),
+                // 運動量スコアは統計クエリ非対応のためサンプル集計(折れ線固定)で扱う
+                make(.workoutEffortScore, "ワークアウトの運動量", .activity, HKUnit.appleEffortScore(), "", "%.0f", chart: .line),
+                make(.estimatedWorkoutEffortScore, "推定ワークアウト運動量", .activity, HKUnit.appleEffortScore(), "", "%.0f", chart: .line),
                 make(.distanceRowing, "ローイングの距離", .activity, km, "km", "%.1f"),
                 make(.rowingSpeed, "ローイング速度", .activity, kmPerHour, "km/h", "%.1f"),
                 make(.distancePaddleSports, "パドルスポーツの距離", .activity, km, "km", "%.1f"),

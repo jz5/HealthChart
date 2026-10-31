@@ -85,6 +85,40 @@ enum MonthMath {
         return result
     }
 
+    /// 区間に含まれる月数
+    static func monthCount(_ span: MonthSpan) -> Int {
+        (span.endYear - span.startYear) * 12 + span.endMonth - span.startMonth + 1
+    }
+
+    /// 進捗を報告できるよう、長い区間をmaxMonthsごとの小区間に分割する
+    static func splitSpan(_ span: MonthSpan, maxMonths: Int) -> [MonthSpan] {
+        var result: [MonthSpan] = []
+        var year = span.startYear
+        var month = span.startMonth
+
+        while (year, month) <= (span.endYear, span.endMonth) {
+            var endYear = year
+            var endMonth = month
+            var count = 1
+            while count < maxMonths, (endYear, endMonth) < (span.endYear, span.endMonth) {
+                endMonth += 1
+                if endMonth > 12 {
+                    endMonth = 1
+                    endYear += 1
+                }
+                count += 1
+            }
+            result.append(MonthSpan(startYear: year, startMonth: month, endYear: endYear, endMonth: endMonth))
+            month = endMonth + 1
+            year = endYear
+            if month > 12 {
+                month = 1
+                year += 1
+            }
+        }
+        return result
+    }
+
     /// キャッシュにない月(と今月)をまとめた連続区間を返す。
     /// 今月はまだ値が変わるため、キャッシュされていても必ずクエリ対象に含める。
     static func missingSpans(required: [(year: Int, month: Int)],

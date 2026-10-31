@@ -309,3 +309,47 @@ struct HealthCatalogTests {
         }
     }
 }
+
+// MARK: - 区間分割
+
+struct SplitSpanTests {
+
+    @Test func 短い区間はそのまま() {
+        let span = MonthSpan(startYear: 2024, startMonth: 3, endYear: 2024, endMonth: 8)
+        let result = MonthMath.splitSpan(span, maxMonths: 12)
+        #expect(result == [span])
+        #expect(MonthMath.monthCount(span) == 6)
+    }
+
+    @Test func 長い区間は12ヶ月ごとに分割() {
+        let span = MonthSpan(startYear: 2014, startMonth: 1, endYear: 2016, endMonth: 6)
+        let result = MonthMath.splitSpan(span, maxMonths: 12)
+        #expect(result.count == 3)
+        #expect(result[0] == MonthSpan(startYear: 2014, startMonth: 1, endYear: 2014, endMonth: 12))
+        #expect(result[1] == MonthSpan(startYear: 2015, startMonth: 1, endYear: 2015, endMonth: 12))
+        #expect(result[2] == MonthSpan(startYear: 2016, startMonth: 1, endYear: 2016, endMonth: 6))
+        #expect(result.reduce(0) { $0 + MonthMath.monthCount($1) } == MonthMath.monthCount(span))
+    }
+
+    @Test func 年マタギも月数が保存される() {
+        let span = MonthSpan(startYear: 2023, startMonth: 11, endYear: 2025, endMonth: 2)
+        let result = MonthMath.splitSpan(span, maxMonths: 12)
+        #expect(result.reduce(0) { $0 + MonthMath.monthCount($1) } == 16)
+        // 分割区間は連続している
+        for i in 1..<result.count {
+            let prev = result[i - 1]
+            let next = result[i]
+            let expectedMonth = prev.endMonth == 12 ? 1 : prev.endMonth + 1
+            let expectedYear = prev.endMonth == 12 ? prev.endYear + 1 : prev.endYear
+            #expect(next.startYear == expectedYear && next.startMonth == expectedMonth)
+        }
+    }
+
+    @Test func 運動量スコアはサンプル集計対象() {
+        if #available(iOS 18.0, *) {
+            #expect(HealthStatsService.isSampleQueryOnly(.workoutEffortScore))
+            #expect(HealthStatsService.isSampleQueryOnly(.estimatedWorkoutEffortScore))
+        }
+        #expect(!HealthStatsService.isSampleQueryOnly(.stepCount))
+    }
+}

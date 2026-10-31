@@ -25,6 +25,7 @@ struct BarChartView: View {
     @State var isEmpty = false
     @State var isCompleted = false
     @State var requested = false
+    @State private var loadProgress: Double?
 
     struct ChartItem: Identifiable {
         var id = UUID()
@@ -84,7 +85,7 @@ struct BarChartView: View {
     }
 
     var body: some View {
-        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, header: {
+        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress, header: {
             Group {
                 HStack {
                     Text(period.title)
@@ -411,8 +412,11 @@ struct BarChartView: View {
         isLoading = true
         isCompleted = false
         selectedItem = nil
+        loadProgress = nil
 
-        let stats = await HealthStatsService.shared.monthlyStats(for: health, startYear: startYear)
+        let stats = await HealthStatsService.shared.monthlyStats(for: health, startYear: startYear) { p in
+            Task { @MainActor in loadProgress = p }
+        }
 
         items = stats.compactMap { stat in
             guard let dailyAverage = stat.dailyAverage else { return nil }

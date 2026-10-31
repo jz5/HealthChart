@@ -24,6 +24,7 @@ struct RangeChartView: View {
     @State var isEmpty = false
     @State var isCompleted = false
     @State var requested = false
+    @State private var loadProgress: Double?
 
     struct ChartItem: Identifiable {
         var id = UUID()
@@ -60,7 +61,7 @@ struct RangeChartView: View {
     }
 
     var body: some View {
-        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, header: {
+        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress, header: {
             Group {
                 Text(health.sampleValueTitle)
                     .font(.subheadline)
@@ -311,8 +312,11 @@ struct RangeChartView: View {
         isLoading = true
         isCompleted = false
         selectedItem = nil
+        loadProgress = nil
 
-        let stats = await HealthStatsService.shared.monthlyStats(for: health, startYear: startYear)
+        let stats = await HealthStatsService.shared.monthlyStats(for: health, startYear: startYear) { p in
+            Task { @MainActor in loadProgress = p }
+        }
 
         items = stats.compactMap { stat in
             guard let min = stat.minValue, let max = stat.maxValue else { return nil }

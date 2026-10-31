@@ -16,6 +16,8 @@ struct ContentView: View {
     @ObservedObject var health = Health.shared
     @ObservedObject var favorites = Favorites.shared
     @ObservedObject var comparisonPairs = ComparisonPairs.shared
+    @ObservedObject var availability = DataAvailability.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     private var favoriteItems: [HealthItem] {
         favorites.types.compactMap { raw in
@@ -85,9 +87,25 @@ struct ContentView: View {
                             }
                         }
                     }
+                    Section {
+                    } footer: {
+                        Text("薄く表示されている項目には、データがないか読み取りが許可されていません。「ヘルスケア」アプリで許可やデータを追加したあとは、リストを下に引っ張ると再チェックできます。")
+                    }
                 }
                 .navigationTitle("ヘルスチャート")
                 .navigationBarTitleDisplayMode(.inline)
+                .task {
+                    await availability.refresh(items: health.items)
+                }
+                .refreshable {
+                    await availability.refresh(items: health.items)
+                }
+                .onChange(of: scenePhase) {
+                    // 「ヘルスケア」アプリで許可を変えて戻ってきた場合に反映する
+                    if scenePhase == .active {
+                        Task { await availability.refresh(items: health.items) }
+                    }
+                }
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         NavigationLink {
@@ -124,6 +142,9 @@ struct ContentView: View {
                     .foregroundColor(item.color)
                     .fontWeight(.semibold)
             }
+            // データなし(読み取り不許可を含む)は薄く表示。あとから読める場合があるので
+            // 無効化はせず、タップはできるままにする
+            .opacity(availability.hasData(item) == false ? 0.4 : 1)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button {

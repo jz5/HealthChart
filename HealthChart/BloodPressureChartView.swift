@@ -27,6 +27,7 @@ struct BloodPressureChartView: View {
     @State var isEmpty = false
     @State var isCompleted = false
     @State var requested = false
+    @State private var loadProgress: Double?
 
     struct ChartItem: Identifiable {
         var id = UUID()
@@ -71,7 +72,7 @@ struct BloodPressureChartView: View {
     }
 
     var body: some View {
-        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, header: {
+        LayoutView(isLoading: $isLoading, isEmpty: $isEmpty, requested: $requested, progress: $loadProgress, header: {
             Group {
 
                 valuesContent(systolicMin: systolicMin, systolicMax: systolicMax, diastolicMin: diastolicMin, diastolicMax: diastolicMax)
@@ -489,13 +490,19 @@ struct BloodPressureChartView: View {
         isCompleted = false
         selectedSystolicItem = nil
         selectedDiastolicItem = nil
+        loadProgress = nil
 
         let service = HealthStatsService.shared
         let systolicItem = Health.shared.items.first { $0.type == .bloodPressureSystolic } ?? health
         let diastolicItem = Health.shared.items.first { $0.type == .bloodPressureDiastolic } ?? health
 
-        let systolicStats = await service.monthlyStats(for: systolicItem, startYear: startYear)
-        let diastolicStats = await service.monthlyStats(for: diastolicItem, startYear: startYear)
+        // 最高血圧で前半、最低血圧で後半の進捗にする
+        let systolicStats = await service.monthlyStats(for: systolicItem, startYear: startYear) { p in
+            Task { @MainActor in loadProgress = p * 0.5 }
+        }
+        let diastolicStats = await service.monthlyStats(for: diastolicItem, startYear: startYear) { p in
+            Task { @MainActor in loadProgress = 0.5 + p * 0.5 }
+        }
 
         let diastolicByKey = Dictionary(uniqueKeysWithValues: diastolicStats.map { ($0.key, $0) })
 
