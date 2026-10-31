@@ -307,7 +307,8 @@ struct AnalysisOptionsView: View {
     let goalKey: String
     @Binding var goal: Double?
     @State private var goalText = ""
-    @FocusState private var goalFocused: Bool
+    @State private var goalDraft = ""
+    @State private var showGoalAlert = false
 
     /// 目標の上限。桁違いの巨大数は軸が壊れて描画も重くなるため受け付けない
     static let maxGoal: Double = 9_999_999
@@ -316,31 +317,36 @@ struct AnalysisOptionsView: View {
         Toggle("移動平均（3/12区間）", isOn: $showMovingAverage)
         Toggle("トレンド", isOn: $showTrend)
         Toggle("統計（中央値・四分位）", isOn: $showStats)
-        HStack {
-            Text("目標")
-            TextField("なし", text: $goalText)
+        // 画面下端のインライン入力はキーボードと重なって窮屈になるため、
+        // タップでアラートを開いて入力する(キーボードとレイアウトが干渉しない)
+        Button {
+            goalDraft = goalText
+            showGoalAlert = true
+        } label: {
+            HStack {
+                Text("目標")
+                    .foregroundColor(.primary)
+                Spacer()
+                Text(goalText.isEmpty ? "なし" : goalText)
+                    .foregroundColor(.gray)
+            }
+        }
+        .alert("目標ライン", isPresented: $showGoalAlert) {
+            TextField("なし", text: $goalDraft)
                 .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .focused($goalFocused)
-                .onChange(of: goalText) {
+            Button("設定") {
+                goalText = goalDraft
+                saveGoal()
+            }
+            if goal != nil {
+                Button("削除", role: .destructive) {
+                    goalText = ""
                     saveGoal()
                 }
-            if goalFocused {
-                // テンキーには閉じるキーがない。キーボード付属の「完了」バーは
-                // フローティング表示で入力欄に重なるため、行内に置く
-                Button("完了") {
-                    goalFocused = false
-                }
-                .buttonStyle(.borderless)
-            } else if goal != nil {
-                Button {
-                    goalText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
-                }
-                .buttonStyle(.plain)
             }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("チャートに目標の線を表示します")
         }
         .onAppear {
             if let value = UserDefaults.standard.object(forKey: goalKey) as? Double,
@@ -356,16 +362,15 @@ struct AnalysisOptionsView: View {
 
     private func saveGoal() {
         let normalized = goalText.replacingOccurrences(of: ",", with: ".")
-        if let value = Double(normalized), value > Self.maxGoal {
-            // 上限を超える桁は受け付けない(末尾を削って戻す)
-            goalText = String(goalText.dropLast())
-            return
-        }
-        if let value = Double(normalized), value > 0 {
+        if var value = Double(normalized), value > 0 {
+            // 桁違いの巨大数は上限に丸める
+            value = Swift.min(value, Self.maxGoal)
             goal = value
+            goalText = value == value.rounded() ? String(Int(value)) : String(value)
             UserDefaults.standard.set(value, forKey: goalKey)
         } else {
             goal = nil
+            goalText = ""
             UserDefaults.standard.removeObject(forKey: goalKey)
         }
     }
