@@ -280,12 +280,23 @@ final class HealthStatsService {
         return result
     }
 
-    /// 項目にサンプルが1件でも存在するかを調べる(limit 1の軽いクエリ)
-    func hasAnySample(for item: HealthItem) async -> Bool {
+    /// 読み取り許可ダイアログをまだ一度も表示していないか(初回起動の判定に使う)
+    func isAuthorizationUnrequested(for items: [HealthItem]) async -> Bool {
+        guard let store else { return true }
+        let types = Set(items.compactMap { HKObjectType.quantityType(forIdentifier: $0.type) })
+        let status = try? await store.statusForAuthorizationRequest(toShare: [], read: types)
+        return status == .shouldRequest
+    }
+
+    /// 項目にサンプルが1件でも存在するかを調べる(limit 1の軽いクエリ)。
+    /// チャートの集計と判定を揃えるため、startYear以降だけを見る。
+    func hasAnySample(for item: HealthItem, startYear: Int) async -> Bool {
         guard let store,
               let type = HKQuantityType.quantityType(forIdentifier: item.type) else { return false }
+        let start = Calendar.current.date(from: DateComponents(year: startYear, month: 1, day: 1))
+        let predicate = start.map { HKQuery.predicateForSamples(withStart: $0, end: nil) }
         return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: nil) { _, samples, _ in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: nil) { _, samples, _ in
                 continuation.resume(returning: !(samples?.isEmpty ?? true))
             }
             store.execute(query)
@@ -331,6 +342,9 @@ final class DataAvailability: ObservableObject {
     @Published private(set) var available: [String: Bool]
 
     private var isScanning = false
+    private var lastScan: Date?
+    /// 自動スキャン(起動時・フォアグラウンド復帰時)の最短間隔
+    private static let autoScanInterval: TimeInterval = 5 * 60
 
     private init() {
         available = (UserDefaults.standard.dictionary(forKey: Self.key) as? [String: Bool]) ?? [:]
@@ -349,17 +363,28 @@ final class DataAvailability: ObservableObject {
     }
 
     /// 全項目を軽いクエリ(limit 1)で順にスキャンする。判明した項目から表示に反映される。
-    func refresh(items: [HealthItem]) async {
+    /// forceでなければ前回スキャンから一定時間はスキップする(フォアグラウンド復帰のたびの全走査を避ける)。
+    func refresh(items: [HealthItem], force: Bool = false) async {
         guard HKHealthStore.isHealthDataAvailable(), !isScanning else { return }
+        if !force, let lastScan, Date().timeIntervalSince(lastScan) < Self.autoScanInterval {
+            return
+        }
+        // 認可ダイアログを一度も出していない初回起動では全項目が「なし」と
+        // 誤判定されて一覧全体が薄色になるため、スキャンしない(未調査=通常表示)
+        if await HealthStatsService.shared.isAuthorizationUnrequested(for: items) {
+            return
+        }
         isScanning = true
         defer { isScanning = false }
 
+        let startYear = UserDefaults.standard.object(forKey: "startYear") as? Int ?? 2014
         for item in items {
-            let hasData = await HealthStatsService.shared.hasAnySample(for: item)
+            let hasData = await HealthStatsService.shared.hasAnySample(for: item, startYear: startYear)
             if available[item.type.rawValue] != hasData {
                 available[item.type.rawValue] = hasData
             }
         }
         UserDefaults.standard.set(available, forKey: Self.key)
+        lastScan = Date()
     }
 }

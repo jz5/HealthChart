@@ -462,26 +462,15 @@ struct BloodPressureChartView: View {
 
     /// 共有画像のサブタイトル（期間と単位）
     private var shareSubtitleText: String? {
-        var parts: [String] = []
-        if let periodText {
-            parts.append(periodText)
-        }
-        if !health.sampleUnitText.isEmpty {
-            parts.append("単位: " + health.sampleUnitText)
-        }
-        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
+        ChartLabels.shareSubtitle(period: periodText, unitText: health.sampleUnitText)
     }
 
     /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
     private var periodText: String? {
         guard SystolicItems.indices.contains(range.lowerBound),
               SystolicItems.indices.contains(range.upperBound) else { return nil }
-        let start = SystolicItems[range.lowerBound].date
-        let end = SystolicItems[range.upperBound].date
-        if range.lowerBound == range.upperBound {
-            return yearMonthDateFormatter.string(from: start)
-        }
-        return yearMonthDateFormatter.string(from: start) + "〜" + yearMonthDateFormatter.string(from: end)
+        return ChartLabels.period(start: SystolicItems[range.lowerBound].date,
+                                  end: SystolicItems[range.upperBound].date)
     }
 
     private func calculateMinMax() {

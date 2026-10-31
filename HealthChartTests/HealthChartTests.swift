@@ -353,3 +353,63 @@ struct SplitSpanTests {
         #expect(!HealthStatsService.isSampleQueryOnly(.stepCount))
     }
 }
+
+// MARK: - 年集計と表示文言
+
+struct YearlyAggregationTests {
+
+    private func date(_ year: Int, _ month: Int) -> Date {
+        Calendar.current.date(from: DateComponents(year: year, month: month, day: 15))!
+    }
+
+    @Test func 年境界で正しくグループ化される() {
+        let points = [
+            DatedValue(date: date(2023, 12), value: 10),
+            DatedValue(date: date(2024, 1), value: 20),
+            DatedValue(date: date(2024, 12), value: 40),
+        ]
+        let result = ChartAnalysis.yearlyMean(points)
+        #expect(result.count == 2)
+        #expect(result[0].value == 10)
+        #expect(result[1].value == 30) // (20+40)/2
+        let calendar = Calendar.current
+        #expect(calendar.component(.year, from: result[0].date) == 2023)
+        #expect(calendar.component(.month, from: result[0].date) == 7)
+        #expect(calendar.component(.year, from: result[1].date) == 2024)
+    }
+
+    @Test func 空なら空を返す() {
+        #expect(ChartAnalysis.yearlyMean([]).isEmpty)
+    }
+
+    @Test func 単一年は1点に畳まれる() {
+        let points = (1...12).map { DatedValue(date: date(2025, $0), value: Double($0)) }
+        let result = ChartAnalysis.yearlyMean(points)
+        #expect(result.count == 1)
+        #expect(result[0].value == 6.5)
+    }
+}
+
+struct ChartLabelsTests {
+
+    private func date(_ year: Int, _ month: Int) -> Date {
+        Calendar.current.date(from: DateComponents(year: year, month: month, day: 15))!
+    }
+
+    @Test func 期間ラベルは範囲表記() {
+        let text = ChartLabels.period(start: date(2023, 11), end: date(2026, 10))
+        #expect(text == "2023年11月〜2026年10月")
+    }
+
+    @Test func 単月は単独表記() {
+        let text = ChartLabels.period(start: date(2026, 10), end: date(2026, 10))
+        #expect(text == "2026年10月")
+    }
+
+    @Test func 共有サブタイトルは期間と単位をつなぐ() {
+        #expect(ChartLabels.shareSubtitle(period: "2026年10月", unitText: "kg") == "2026年10月 ・ 単位: kg")
+        #expect(ChartLabels.shareSubtitle(period: "2026年10月", unitText: "") == "2026年10月")
+        #expect(ChartLabels.shareSubtitle(period: nil, unitText: "kg") == "単位: kg")
+        #expect(ChartLabels.shareSubtitle(period: nil, unitText: "") == nil)
+    }
+}

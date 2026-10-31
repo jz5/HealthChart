@@ -29,13 +29,6 @@ struct ComparisonChartView: View {
     @AppStorage("chartUnit") private var chartUnitRaw = ChartUnit.month.rawValue
     private var chartUnit: ChartUnit { ChartUnit(rawValue: chartUnitRaw) ?? .month }
 
-    private let yearMonthFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ja_JP")
-        formatter.setLocalizedDateFormatFromTemplate("yMMM")
-        return formatter
-    }()
-
     /// ホームのお気に入りの組み合わせから開くときは、最初のクエリが走る前に
     /// 保存値を書き換えておく(onAppearだと旧ペアのロードと競合する)
     init(presetA: String? = nil, presetB: String? = nil) {
@@ -90,6 +83,11 @@ struct ComparisonChartView: View {
                     MonthRangeSlider(range: $range, inRange: inRange, disabled: false,
                                      periodText: periodText)
                     ChartUnitPicker(chartUnitRaw: $chartUnitRaw)
+                    if let partialYearNote {
+                        Text(partialYearNote)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
                     let pairs = matchedPairs()
                     correlationContent(pairs: pairs)
                     scatterContent(pairs: pairs)
@@ -243,11 +241,17 @@ struct ComparisonChartView: View {
 
     private var periodText: String? {
         guard let span = selectedSpan else { return nil }
-        if range.lowerBound == range.upperBound {
-            return yearMonthFormatter.string(from: span.lowerBound)
-        }
-        return yearMonthFormatter.string(from: span.lowerBound) + "〜" +
-            yearMonthFormatter.string(from: span.upperBound)
+        return ChartLabels.period(start: span.lowerBound, end: span.upperBound)
+    }
+
+    /// 年単位表示で端の年が部分集計になる場合の注記
+    private var partialYearNote: String? {
+        guard chartUnit == .year, let span = selectedSpan else { return nil }
+        let calendar = Calendar.current
+        let startMonth = calendar.component(.month, from: span.lowerBound)
+        let endMonth = calendar.component(.month, from: span.upperBound)
+        guard startMonth != 1 || endMonth != 12 else { return nil }
+        return ChartLabels.partialYearNote
     }
 
     private var xDomain: ClosedRange<Date> {

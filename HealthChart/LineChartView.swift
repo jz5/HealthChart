@@ -258,46 +258,37 @@ struct LineChartView: View {
 
     /// 共有画像のサブタイトル（期間と単位）
     private var shareSubtitleText: String? {
-        var parts: [String] = []
-        if let periodText {
-            parts.append(periodText)
-        }
-        if !health.sampleUnitText.isEmpty {
-            parts.append("単位: " + health.sampleUnitText)
-        }
-        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
+        ChartLabels.shareSubtitle(period: periodText, unitText: health.sampleUnitText)
     }
 
     /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
     private var periodText: String? {
         guard items.indices.contains(range.lowerBound),
               items.indices.contains(range.upperBound) else { return nil }
-        let start = items[range.lowerBound].date
-        let end = items[range.upperBound].date
-        if range.lowerBound == range.upperBound {
-            return yearMonthDateFormatter.string(from: start)
-        }
-        return yearMonthDateFormatter.string(from: start) + "〜" + yearMonthDateFormatter.string(from: end)
+        return ChartLabels.period(start: items[range.lowerBound].date,
+                                  end: items[range.upperBound].date)
+    }
+
+    /// 年単位表示で端の年が部分集計になる場合の注記
+    private var partialYearNote: String? {
+        guard chartUnit == .year,
+              items.indices.contains(range.lowerBound),
+              items.indices.contains(range.upperBound) else { return nil }
+        let calendar = Calendar.current
+        let startMonth = calendar.component(.month, from: items[range.lowerBound].date)
+        let endMonth = calendar.component(.month, from: items[range.upperBound].date)
+        guard startMonth != 1 || endMonth != 12 else { return nil }
+        return ChartLabels.partialYearNote
     }
 
     /// 月次アイテムを年ごとの平均に畳む
     private func yearlyItems(_ items: [ChartItem]) -> [ChartItem] {
-        let calendar = Calendar.current
-        var groups: [Int: (sum: Double, count: Int, start: Date, end: Date)] = [:]
-        for item in items {
-            let year = calendar.component(.year, from: item.date)
-            var g = groups[year] ?? (0, 0, item.startDate, item.endDate)
-            g.sum += item.value
-            g.count += 1
-            g.start = Swift.min(g.start, item.startDate)
-            g.end = Swift.max(g.end, item.endDate)
-            groups[year] = g
-        }
-        return groups.keys.sorted().compactMap { year in
-            guard let g = groups[year], g.count > 0,
-                  let mid = calendar.date(from: DateComponents(year: year, month: 7, day: 1)) else { return nil }
-            return ChartItem(value: g.sum / Double(g.count), date: mid,
-                             startDate: g.start, endDate: g.end)
+        ChartAnalysis.groupByYear(items, date: { $0.date }) { year, group in
+            guard !group.isEmpty, let mid = ChartAnalysis.midOfYear(year) else { return nil }
+            let mean = group.reduce(0) { $0 + $1.value } / Double(group.count)
+            return ChartItem(value: mean, date: mid,
+                             startDate: group.map(\.startDate).min() ?? mid,
+                             endDate: group.map(\.endDate).max() ?? mid)
         }
     }
 
@@ -382,6 +373,11 @@ struct LineChartView: View {
                 })
 
                 ChartUnitPicker(chartUnitRaw: $chartUnitRaw)
+                if let partialYearNote {
+                    Text(partialYearNote)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
                 Toggle("相対表示（期間最初の値を基準）", isOn: $relativeDisplay)
                 Toggle("平均", isOn: $showAverage)
                 Toggle("最小・最大", isOn: $showMinMax)

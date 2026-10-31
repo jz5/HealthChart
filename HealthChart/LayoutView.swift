@@ -39,6 +39,39 @@ struct MonthRangeSlider: View {
     }
 }
 
+/// チャート画面で共通に使う表示文言(期間ラベル・共有サブタイトルなど)
+enum ChartLabels {
+
+    static let yearMonthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.setLocalizedDateFormatFromTemplate("yMMM")
+        return formatter
+    }()
+
+    /// 選択期間のラベル(例「2023年11月〜2026年10月」。1ヶ月なら単月表記)
+    static func period(start: Date, end: Date) -> String {
+        let startText = yearMonthFormatter.string(from: start)
+        let endText = yearMonthFormatter.string(from: end)
+        return startText == endText ? startText : startText + "〜" + endText
+    }
+
+    /// 共有画像のサブタイトル(期間と単位)
+    static func shareSubtitle(period: String?, unitText: String) -> String? {
+        var parts: [String] = []
+        if let period {
+            parts.append(period)
+        }
+        if !unitText.isEmpty {
+            parts.append("単位: " + unitText)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
+    }
+
+    /// 年単位表示で端の年が部分集計のときの注記
+    static let partialYearNote = "端の年は期間内の月だけの平均です"
+}
+
 /// チャート下の設定リスト。Form(内部スクロール)だと画面の中に
 /// もう1つスクロールができて操作しづらいため、高さ可変のカードにして
 /// 画面全体のスクロールに乗せる
@@ -247,7 +280,10 @@ struct LayoutView<Header: View, Chart: View, Footer: View>: View {
                 .frame(width: 760, height: 400)
         }
         .padding(24)
-        .background(Color(UIColor.systemBackground))
+        // レンダリング環境とUIKit側の色解決がズレるとダークモードで読めない
+        // 画像になるため、共有画像は常にライト配色・白背景で固定する
+        .background(Color.white)
+        .environment(\.colorScheme, .light)
 
         let renderer = ImageRenderer(content: content)
         renderer.scale = 2

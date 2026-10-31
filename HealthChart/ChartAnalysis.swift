@@ -25,21 +25,27 @@ enum ChartUnit: String, CaseIterable, Identifiable {
 
 enum ChartAnalysis {
 
+    /// 年ごとにグループ化し、foldで1点に畳む(年の昇順)。
+    /// 棒・折れ線・比較の年単位表示が同じグルーピングを共有するための土台。
+    static func groupByYear<T>(_ items: [T], date: (T) -> Date, fold: (Int, [T]) -> T?) -> [T] {
+        let calendar = Calendar.current
+        let groups = Dictionary(grouping: items) { calendar.component(.year, from: date($0)) }
+        return groups.keys.sorted().compactMap { year in
+            groups[year].flatMap { fold(year, $0) }
+        }
+    }
+
+    /// 年単位の点をプロットする位置(年の中央=7月1日)
+    static func midOfYear(_ year: Int) -> Date? {
+        Calendar.current.date(from: DateComponents(year: year, month: 7, day: 1))
+    }
+
     /// 月次点列を年ごとの平均に畳む(dateは年の中央7月1日)
     static func yearlyMean(_ points: [DatedValue]) -> [DatedValue] {
-        let calendar = Calendar.current
-        var groups: [Int: (sum: Double, count: Int)] = [:]
-        for point in points {
-            let year = calendar.component(.year, from: point.date)
-            var g = groups[year] ?? (0, 0)
-            g.sum += point.value
-            g.count += 1
-            groups[year] = g
-        }
-        return groups.keys.sorted().compactMap { year in
-            guard let g = groups[year], g.count > 0,
-                  let mid = calendar.date(from: DateComponents(year: year, month: 7, day: 1)) else { return nil }
-            return DatedValue(date: mid, value: g.sum / Double(g.count))
+        groupByYear(points, date: { $0.date }) { year, group in
+            guard !group.isEmpty, let mid = midOfYear(year) else { return nil }
+            let mean = group.reduce(0) { $0 + $1.value } / Double(group.count)
+            return DatedValue(date: mid, value: mean)
         }
     }
 

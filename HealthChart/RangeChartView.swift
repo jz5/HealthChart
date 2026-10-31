@@ -295,26 +295,15 @@ struct RangeChartView: View {
 
     /// 共有画像のサブタイトル（期間と単位）
     private var shareSubtitleText: String? {
-        var parts: [String] = []
-        if let periodText {
-            parts.append(periodText)
-        }
-        if !health.sampleUnitText.isEmpty {
-            parts.append("単位: " + health.sampleUnitText)
-        }
-        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
+        ChartLabels.shareSubtitle(period: periodText, unitText: health.sampleUnitText)
     }
 
     /// スライダーで選択中の期間(例「2023年11月〜2026年10月」)
     private var periodText: String? {
         guard items.indices.contains(range.lowerBound),
               items.indices.contains(range.upperBound) else { return nil }
-        let start = items[range.lowerBound].date
-        let end = items[range.upperBound].date
-        if range.lowerBound == range.upperBound {
-            return yearMonthDateFormatter.string(from: start)
-        }
-        return yearMonthDateFormatter.string(from: start) + "〜" + yearMonthDateFormatter.string(from: end)
+        return ChartLabels.period(start: items[range.lowerBound].date,
+                                  end: items[range.upperBound].date)
     }
 
     private func calculateMinMax() {

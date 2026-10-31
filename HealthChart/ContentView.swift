@@ -98,7 +98,7 @@ struct ContentView: View {
                     await availability.refresh(items: health.items)
                 }
                 .refreshable {
-                    await availability.refresh(items: health.items)
+                    await availability.refresh(items: health.items, force: true)
                 }
                 .onChange(of: scenePhase) {
                     // 「ヘルスケア」アプリで許可を変えて戻ってきた場合に反映する
